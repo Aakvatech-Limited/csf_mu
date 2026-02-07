@@ -139,9 +139,12 @@ app_license = "mit"
 
 doc_events = {
 	"Sales Invoice": {
-		"validate": "csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra"
+		"validate": "csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra",
+		"on_submit": "csf_mu.utils.mra_invoice.create_invoice_log",
 	}
 }
+
+after_migrate = "csf_mu.patches.custom_fields.create_csf_mu_custom_fields.execute"
 
 # Scheduled Tasks
 # ---------------

@@ -95,7 +95,7 @@
   {
    "fieldname": "mra_uuid",
    "fieldtype": "Data",
-   "label": "MRA UUID"
+   "label": "IRN"
   },
   {
    "fieldname": "mra_qr_code",
