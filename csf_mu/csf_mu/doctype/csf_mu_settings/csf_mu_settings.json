@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-07 13:45:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "environment_section",
+  "environment",
+  "column_break_env",
+  "auth_url",
+  "transmit_url",
+  "credentials_section",
+  "username",
+  "password",
+  "column_break_creds",
+  "ebs_mra_id",
+  "area_code",
+  "keys_section",
+  "public_key_certificate",
+  "column_break_keys",
+  "enable_invoice_signature",
+  "private_key_file",
+  "runtime_section",
+  "token",
+  "token_expiry",
+  "column_break_runtime",
+  "max_invoices_per_request"
+ ],
+ "fields": [
+  {
+   "fieldname": "environment_section",
+   "fieldtype": "Section Break",
+   "label": "Environment"
+  },
+  {
+   "default": "SANDBOX",
+   "fieldname": "environment",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Environment",
+   "options": "SANDBOX\nLIVE",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_env",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "https://vfisc.mra.mu/einvoice-token-service/token-api/generate-token",
+   "fieldname": "auth_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Auth URL",
+   "reqd": 1
+  },
+  {
+   "default": "https://vfisc.mra.mu/realtime/invoice/transmit",
+   "fieldname": "transmit_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Transmit URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Credentials"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Username",
+   "reqd": 1
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_creds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ebs_mra_id",
+   "fieldtype": "Data",
+   "label": "EBS MRA ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "area_code",
+   "fieldtype": "Data",
+   "label": "Area Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "keys_section",
+   "fieldtype": "Section Break",
+   "label": "Keys"
+  },
+  {
+   "fieldname": "public_key_certificate",
+   "fieldtype": "Attach",
+   "label": "Public Key Certificate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_keys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_invoice_signature",
+   "fieldtype": "Check",
+   "label": "Enable Invoice Signature"
+  },
+  {
+   "depends_on": "eval:doc.enable_invoice_signature",
+   "fieldname": "private_key_file",
+   "fieldtype": "Attach",
+   "label": "Private Key File"
+  },
+  {
+   "fieldname": "runtime_section",
+   "fieldtype": "Section Break",
+   "label": "Runtime"
+  },
+  {
+   "fieldname": "token",
+   "fieldtype": "Data",
+   "label": "Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "token_expiry",
+   "fieldtype": "Datetime",
+   "label": "Token Expiry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_runtime",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "500",
+   "fieldname": "max_invoices_per_request",
+   "fieldtype": "Int",
+   "label": "Max Invoices Per Request"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-02-07 14:06:14.114840",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "CSF MU Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
