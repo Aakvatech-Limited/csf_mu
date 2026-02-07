@@ -1,0 +1,163 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-07 14:35:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "sales_invoice",
+  "company",
+  "column_break_1",
+  "status",
+  "invoice_identifier",
+  "section_break_request",
+  "request_id",
+  "request_datetime",
+  "column_break_req",
+  "response_id",
+  "response_datetime",
+  "section_break_response",
+  "mra_uuid",
+  "mra_qr_code",
+  "error_summary",
+  "section_break_payloads",
+  "request_json",
+  "response_json",
+  "section_break_errors",
+  "errors"
+ ],
+ "fields": [
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "PENDING",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "PENDING\nSUCCESS\nERRORS\nHAS_ERRORS"
+  },
+  {
+   "fieldname": "invoice_identifier",
+   "fieldtype": "Data",
+   "label": "Invoice Identifier"
+  },
+  {
+   "fieldname": "section_break_request",
+   "fieldtype": "Section Break",
+   "label": "Request / Response"
+  },
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Data",
+   "label": "Request ID"
+  },
+  {
+   "fieldname": "request_datetime",
+   "fieldtype": "Datetime",
+   "label": "Request Datetime"
+  },
+  {
+   "fieldname": "column_break_req",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_id",
+   "fieldtype": "Data",
+   "label": "Response ID"
+  },
+  {
+   "fieldname": "response_datetime",
+   "fieldtype": "Datetime",
+   "label": "Response Datetime"
+  },
+  {
+   "fieldname": "section_break_response",
+   "fieldtype": "Section Break",
+   "label": "MRA Response"
+  },
+  {
+   "fieldname": "mra_uuid",
+   "fieldtype": "Data",
+   "label": "MRA UUID"
+  },
+  {
+   "fieldname": "mra_qr_code",
+   "fieldtype": "Long Text",
+   "label": "MRA QR Code"
+  },
+  {
+   "fieldname": "error_summary",
+   "fieldtype": "Small Text",
+   "label": "Error Summary"
+  },
+  {
+   "fieldname": "section_break_payloads",
+   "fieldtype": "Section Break",
+   "label": "Payloads"
+  },
+  {
+   "fieldname": "request_json",
+   "fieldtype": "Code",
+   "label": "Request JSON",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "response_json",
+   "fieldtype": "Code",
+   "label": "Response JSON",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "section_break_errors",
+   "fieldtype": "Section Break",
+   "label": "Errors"
+  },
+  {
+   "fieldname": "errors",
+   "fieldtype": "Table",
+   "label": "Errors",
+   "options": "MRA Invoice Error"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-07 14:35:00.000000",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "MRA Invoice Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

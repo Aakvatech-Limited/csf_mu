@@ -1,7 +1,7 @@
 // Copyright (c) 2026, Aakvatech and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("CSF MU Settings", {
+// frappe.ui.form.on("MRA Invoice Log", {
 // 	refresh(frm) {
 
 // 	},
