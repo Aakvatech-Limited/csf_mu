@@ -6,9 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "environment_section",
-  "environment",
-  "column_break_env",
   "auth_url",
+  "column_break_env",
   "transmit_url",
   "credentials_section",
   "username",
@@ -32,15 +31,6 @@
    "fieldname": "environment_section",
    "fieldtype": "Section Break",
    "label": "Environment"
-  },
-  {
-   "default": "SANDBOX",
-   "fieldname": "environment",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Environment",
-   "options": "SANDBOX\nLIVE",
-   "reqd": 1
   },
   {
    "fieldname": "column_break_env",
@@ -148,14 +138,15 @@
    "default": "500",
    "fieldname": "max_invoices_per_request",
    "fieldtype": "Int",
-   "label": "Max Invoices Per Request"
+   "label": "Max Invoices Per Request",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-02-07 14:06:14.114840",
+ "modified": "2026-02-07 14:23:11.592113",
  "modified_by": "Administrator",
  "module": "CSF MU",
  "name": "CSF MU Settings",
