@@ -4,6 +4,99 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def execute():
 	fields = {
+		"Company": [
+			{
+				"fieldname": "mra_section",
+				"fieldtype": "Section Break",
+				"insert_after": "tax_id",
+				"label": "MRA",
+			},
+			{
+				"fieldname": "mra_tan",
+				"fieldtype": "Data",
+				"insert_after": "mra_section",
+				"label": "TAN",
+			},
+			{
+				"fieldname": "mra_brn",
+				"fieldtype": "Data",
+				"insert_after": "mra_tan",
+				"label": "BRN",
+			},
+			{
+				"fieldname": "mra_trade_name",
+				"fieldtype": "Data",
+				"insert_after": "mra_brn",
+				"label": "Trade Name",
+			},
+			{
+				"fieldname": "mra_business_addr",
+				"fieldtype": "Small Text",
+				"insert_after": "mra_trade_name",
+				"label": "Business Address",
+			},
+			{
+				"fieldname": "mra_business_phone",
+				"fieldtype": "Data",
+				"insert_after": "mra_business_addr",
+				"label": "Business Phone",
+			},
+			{
+				"fieldname": "mra_person_type",
+				"fieldtype": "Select",
+				"insert_after": "mra_business_phone",
+				"label": "Person Type",
+				"options": "VATR\nNVTR",
+				"default": "VATR",
+			},
+		],
+		"Customer": [
+			{
+				"fieldname": "mra_section",
+				"fieldtype": "Section Break",
+				"insert_after": "tax_id",
+				"label": "MRA",
+			},
+			{
+				"fieldname": "mra_buyer_type",
+				"fieldtype": "Select",
+				"insert_after": "mra_section",
+				"label": "Buyer Type",
+				"options": "VATR\nNVTR\nEXMP",
+			},
+			{
+				"fieldname": "mra_transaction_type",
+				"fieldtype": "Select",
+				"insert_after": "mra_buyer_type",
+				"label": "Transaction Type",
+				"options": "B2B\nB2G\nB2C\nEXP\nB2E",
+				"default": "B2C",
+			},
+			{
+				"fieldname": "mra_tan",
+				"fieldtype": "Data",
+				"insert_after": "mra_transaction_type",
+				"label": "TAN",
+			},
+			{
+				"fieldname": "mra_brn",
+				"fieldtype": "Data",
+				"insert_after": "mra_tan",
+				"label": "BRN",
+			},
+			{
+				"fieldname": "mra_business_addr",
+				"fieldtype": "Small Text",
+				"insert_after": "mra_brn",
+				"label": "Business Address",
+			},
+			{
+				"fieldname": "mra_nic",
+				"fieldtype": "Data",
+				"insert_after": "mra_business_addr",
+				"label": "NIC / NCID",
+			},
+		],
 		"Sales Invoice": [
 			{
 				"fieldname": "mra_section",
