@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-07 14:20:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_tax_template",
+  "tax_code",
+  "column_break_1",
+  "nature",
+  "description",
+  "section_break_1",
+  "disabled"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_tax_template",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Tax Template",
+   "options": "Item Tax Template",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "tax_code",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "MRA Tax Code",
+   "options": "TC01\nTC02\nTC03\nTC04\nTC05\nTC06",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nature",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Nature",
+   "options": "GOODS\nSERVICES",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-07 18:25:18.963900",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "MRA Tax Code Map",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
