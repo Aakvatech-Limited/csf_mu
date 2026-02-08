@@ -139,8 +139,8 @@ doctype_js = {"Company": "csf_mu/company.js"}
 
 doc_events = {
 	"Sales Invoice": {
-		"validate": "csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra",
-		"on_submit": "csf_mu.utils.mra_invoice.create_invoice_log",
+		"validate": "csf_mu.csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra",
+		"on_submit": "csf_mu.csf_mu.utils.mra_invoice.create_invoice_log",
 	}
 }
 
