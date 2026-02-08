@@ -6,32 +6,48 @@ from csf_mu.csf_mu.utils.mra_api import sign_payload, transmit_invoice
 from csf_mu.csf_mu.utils.mra_payload import build_mra_invoice_payload
 
 
-def create_invoice_log(doc, method=None):
+def _send_invoice_to_mra(doc, allow_existing_log=False):
 	existing = frappe.db.exists("MRA Invoice Log", {"sales_invoice": doc.name})
-	if existing:
+	if existing and not allow_existing_log:
 		return
 
 	payload_list = build_mra_invoice_payload(doc)
 	payload_json = json.dumps(payload_list)
 
-	log = frappe.new_doc("MRA Invoice Log")
-	log.sales_invoice = doc.name
-	log.company = doc.company
-	log.status = "PENDING"
-	log.invoice_identifier = doc.name
-	log.request_json = payload_json
-	log.insert(ignore_permissions=True)
+	if existing:
+		log = frappe.get_doc("MRA Invoice Log", existing)
+		log.status = "PENDING"
+		log.error_summary = ""
+		log.request_json = payload_json
+		log.response_json = ""
+		log.request_id = ""
+		log.request_datetime = ""
+		log.response_id = ""
+		log.response_datetime = ""
+		log.set("errors", [])
+		log.save(ignore_permissions=True)
+	else:
+		log = frappe.new_doc("MRA Invoice Log")
+		log.sales_invoice = doc.name
+		log.company = doc.company
+		log.status = "PENDING"
+		log.invoice_identifier = doc.name
+		log.request_json = payload_json
+		log.insert(ignore_permissions=True)
+		doc.db_set("mra_invoice_log", log.name, update_modified=False)
 
-	doc.db_set("mra_invoice_log", log.name, update_modified=False)
 	doc.db_set("mra_status", "PENDING", update_modified=False)
 
 	settings = frappe.get_single("CSF MU Settings")
 	if not settings.public_key_certificate:
+		log.status = "ERRORS"
+		log.error_summary = "Public Key Certificate is required in CSF MU Settings."
+		log.save(ignore_permissions=True)
+		doc.db_set("mra_status", "ERRORS", update_modified=False)
 		return
 
-	signed_hash = sign_payload(payload_json, settings)
-
 	try:
+		signed_hash = sign_payload(payload_json, settings)
 		request_payload, response = transmit_invoice(payload_json, signed_hash)
 	except Exception as exc:
 		log.status = "ERRORS"
@@ -67,6 +83,7 @@ def create_invoice_log(doc, method=None):
 
 	if errors:
 		log.error_summary = errors[0].get("description") if errors else ""
+		log.set("errors", [])
 		for err in errors:
 			log.append(
 				"errors",
@@ -79,3 +96,19 @@ def create_invoice_log(doc, method=None):
 
 	log.save(ignore_permissions=True)
 	doc.db_set("mra_status", log.status, update_modified=False)
+
+
+def create_invoice_log(doc, method=None):
+	_send_invoice_to_mra(doc, allow_existing_log=False)
+
+
+@frappe.whitelist()
+def resend_invoice_to_mra(sales_invoice):
+	doc = frappe.get_doc("Sales Invoice", sales_invoice)
+	if doc.docstatus != 1:
+		frappe.throw("Only submitted Sales Invoices can be re-sent to MRA.")
+	status = (doc.get("mra_status") or "").upper()
+	if status not in ("ERROR", "ERRORS"):
+		frappe.throw("Re-send is allowed only for invoices with status ERROR or ERRORS.")
+	_send_invoice_to_mra(doc, allow_existing_log=True)
+	return {"status": doc.get("mra_status")}
