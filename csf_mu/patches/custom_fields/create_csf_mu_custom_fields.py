@@ -6,9 +6,15 @@ def execute():
 	fields = {
 		"Company": [
 			{
+				"fieldname": "mra_tab",
+				"fieldtype": "Tab Break",
+				"insert_after": "default_operating_cost_account",
+				"label": "MRA",
+			},
+			{
 				"fieldname": "mra_section",
 				"fieldtype": "Section Break",
-				"insert_after": "tax_id",
+				"insert_after": "mra_tab",
 				"label": "MRA",
 			},
 			{
@@ -24,9 +30,14 @@ def execute():
 				"label": "BRN",
 			},
 			{
+				"fieldname": "mra_column_break_1",
+				"fieldtype": "Column Break",
+				"insert_after": "mra_brn",
+			},
+			{
 				"fieldname": "mra_trade_name",
 				"fieldtype": "Data",
-				"insert_after": "mra_brn",
+				"insert_after": "mra_column_break_1",
 				"label": "Trade Name",
 			},
 			{
