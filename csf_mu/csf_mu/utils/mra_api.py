@@ -93,10 +93,6 @@ def get_token_and_mra_key():
 		frappe.throw("Public Key Certificate is required in CSF MU Settings.")
 
 	now = now_datetime()
-	if settings.token and settings.token_expiry:
-		expiry = get_datetime(settings.token_expiry)
-		if expiry - TOKEN_REFRESH_BUFFER > now:
-			return settings.token, None
 
 	cert_path = _resolve_file_path(settings.public_key_certificate)
 	if not cert_path or not os.path.exists(cert_path):
@@ -143,7 +139,7 @@ def get_token_and_mra_key():
 
 	encrypted_key_b64 = data.get("key") or ""
 	if not encrypted_key_b64:
-		return data.get("token"), None
+		raise frappe.ValidationError(f"Auth response missing key: {data}")
 
 	decrypted = _aes_ecb_decrypt(aes_key, base64.b64decode(encrypted_key_b64))
 	try:
