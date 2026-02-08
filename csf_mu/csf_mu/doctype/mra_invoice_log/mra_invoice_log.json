@@ -69,7 +69,7 @@
   },
   {
    "fieldname": "request_datetime",
-   "fieldtype": "Datetime",
+   "fieldtype": "Data",
    "label": "Request Datetime"
   },
   {
@@ -83,7 +83,7 @@
   },
   {
    "fieldname": "response_datetime",
-   "fieldtype": "Datetime",
+   "fieldtype": "Data",
    "label": "Response Datetime"
   },
   {
