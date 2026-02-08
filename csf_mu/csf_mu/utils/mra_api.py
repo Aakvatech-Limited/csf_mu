@@ -21,6 +21,12 @@ DEFAULT_TIMEOUT = 60
 def _resolve_file_path(file_url):
 	if not file_url:
 		return None
+	if file_url.startswith("/private/files/"):
+		filename = file_url.replace("/private/files/", "", 1)
+		return get_site_path("private", "files", filename)
+	if file_url.startswith("/files/"):
+		filename = file_url.replace("/files/", "", 1)
+		return get_site_path("public", "files", filename)
 	if file_url.startswith("/"):
 		return get_site_path(file_url.lstrip("/"))
 	return file_url
