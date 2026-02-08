@@ -19,20 +19,29 @@ def create_mra_item_tax_templates(company):
 
 	created = []
 	for tmpl in tax_templates:
-		name = tmpl["title"]
-		exists = frappe.db.exists("Item Tax Template", {"title": name, "company": company})
-		if not exists:
+		title = tmpl["title"]
+		template_name = frappe.db.get_value(
+			"Item Tax Template", {"title": title, "company": company}, "name"
+		)
+		if not template_name:
+			legacy_title = f"{title} - {abbr}"
+			template_name = frappe.db.get_value(
+				"Item Tax Template", {"title": legacy_title, "company": company}, "name"
+			)
+
+		if not template_name:
 			doc = frappe.new_doc("Item Tax Template")
-			doc.title = name
+			doc.title = title
 			doc.company = company
 			doc.append(
 				"taxes",
 				{"tax_type": tax_account, "tax_rate": tmpl["tax_rate"]},
 			)
 			doc.insert(ignore_permissions=True)
-			created.append(name)
+			template_name = doc.name
+			created.append(template_name)
 
-		_map_tax_code(tmpl["title"], tmpl["tax_code"], tmpl["nature"])
+		_map_tax_code(template_name, tmpl["tax_code"], tmpl["nature"])
 
 	return {
 		"created": created,
@@ -83,7 +92,7 @@ def _get_mra_tax_templates(abbr):
 		for nature in ("GOODS", "SERVICES"):
 			templates.append(
 				{
-					"title": f"MRA {code['tax_code']} {nature} - {abbr}",
+					"title": f"MRA {code['tax_code']} {nature}",
 					"tax_code": code["tax_code"],
 					"nature": nature,
 					"tax_rate": code["tax_rate"],
