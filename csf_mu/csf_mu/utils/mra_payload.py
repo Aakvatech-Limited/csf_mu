@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import get_datetime
+from frappe.utils import cint, get_datetime
 
 from csf_mu.csf_mu.utils.mra_tax import get_mra_tax_map
 
@@ -58,6 +58,29 @@ def _get_buyer_details(customer_name):
 	}
 
 
+def _reserve_invoice_counter():
+	singles = frappe.db.get_singles_dict("CSF MU Settings", for_update=True)
+	current = cint(singles.get("mra_invoice_counter") or 0)
+	next_counter = current + 1
+	frappe.db.set_single_value(
+		"CSF MU Settings",
+		"mra_invoice_counter",
+		next_counter,
+		update_modified=False,
+	)
+	return next_counter
+
+
+def _get_invoice_counter(doc):
+	counter = doc.get("mra_invoice_counter")
+	if counter:
+		return str(counter)
+
+	counter = _reserve_invoice_counter()
+	doc.db_set("mra_invoice_counter", counter, update_modified=False)
+	return str(counter)
+
+
 def build_mra_invoice_payload(doc):
 	"""Build raw MRA invoice JSON (list with one invoice)."""
 	if isinstance(doc, str):
@@ -72,6 +95,7 @@ def build_mra_invoice_payload(doc):
 	invoice_type_desc = doc.get("mra_invoice_type_desc") or "STD"
 	invoice_ref_identifier = doc.get("return_against") if invoice_type_desc in ("CRN", "DRN") else ""
 	reason_stated = doc.get("mra_reason_stated") if invoice_type_desc in ("CRN", "DRN") else ""
+	invoice_counter = _get_invoice_counter(doc)
 
 	items = []
 	total_vat_amount = 0
@@ -117,7 +141,7 @@ def build_mra_invoice_payload(doc):
 		"transactionType": transaction_type,
 		"invoiceTypeDesc": invoice_type_desc,
 		"invoiceIdentifier": doc.name,
-		"invoiceCounter": doc.name,
+		"invoiceCounter": invoice_counter,
 		"invoiceRefIdentifier": invoice_ref_identifier,
 		"previousNoteHash": doc.get("mra_previous_note_hash") or "0",
 		"reasonStated": reason_stated,

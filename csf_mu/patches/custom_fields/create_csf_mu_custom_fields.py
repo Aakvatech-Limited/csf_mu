@@ -147,9 +147,16 @@ def execute():
 				"read_only": 1,
 			},
 			{
+				"fieldname": "mra_invoice_counter",
+				"fieldtype": "Int",
+				"insert_after": "mra_status",
+				"label": "Invoice Counter (MRA)",
+				"read_only": 1,
+			},
+			{
 				"fieldname": "mra_uuid",
 				"fieldtype": "Data",
-				"insert_after": "mra_status",
+				"insert_after": "mra_invoice_counter",
 				"label": "IRN",
 				"read_only": 1,
 			},
