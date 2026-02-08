@@ -138,10 +138,9 @@ def execute():
 			},
 			{
 				"fieldname": "mra_status",
-				"fieldtype": "Select",
+				"fieldtype": "Data",
 				"insert_after": "mra_previous_note_hash",
 				"label": "MRA Status",
-				"options": "PENDING\nSUCCESS\nERRORS\nHAS_ERRORS",
 				"read_only": 1,
 			},
 			{
