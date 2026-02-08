@@ -106,9 +106,10 @@ def get_token_and_mra_key():
 	aes_key = os.urandom(32)
 	encrypt_key_b64 = base64.b64encode(aes_key).decode()
 
+	password = settings.get_password("password") or ""
 	payload = {
 		"username": settings.username,
-		"password": settings.password,
+		"password": password,
 		"encryptKey": encrypt_key_b64,
 		"refreshToken": "true",
 	}
@@ -128,7 +129,10 @@ def get_token_and_mra_key():
 		json=auth_request,
 		timeout=DEFAULT_TIMEOUT,
 	)
-	resp.raise_for_status()
+	if resp.status_code >= 400:
+		raise frappe.ValidationError(
+			f"Auth failed ({resp.status_code}): {resp.text}"
+		)
 	data = resp.json()
 
 	if data.get("status") != "SUCCESS":
@@ -198,5 +202,8 @@ def transmit_invoice(payload_json, signed_hash):
 		json=request_payload,
 		timeout=DEFAULT_TIMEOUT,
 	)
-	resp.raise_for_status()
+	if resp.status_code >= 400:
+		raise frappe.ValidationError(
+			f"Transmit failed ({resp.status_code}): {resp.text}"
+		)
 	return request_payload, resp.json()
