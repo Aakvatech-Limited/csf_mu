@@ -7,6 +7,11 @@ frappe.ui.form.on("Sales Invoice", {
 			return;
 		}
 
+		const status = (frm.doc.mra_status || "").toUpperCase();
+		if (!["ERROR", "ERRORS"].includes(status)) {
+			return;
+		}
+
 		frm.add_custom_button(__("Re-Send to MRA"), () => {
 			frappe.call({
 				method: "csf_mu.csf_mu.utils.mra_invoice.resend_invoice_to_mra",
