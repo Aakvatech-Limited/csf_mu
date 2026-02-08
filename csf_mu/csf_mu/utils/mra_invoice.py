@@ -52,7 +52,7 @@ def create_invoice_log(doc, method=None):
 	errors = []
 	for inv in response.get("fiscalisedInvoices") or []:
 		if inv.get("invoiceIdentifier") == doc.name:
-			irn = inv.get("uuid")
+			irn = inv.get("irn") or inv.get("uuid")
 			qr_code = inv.get("qrCode")
 			errors = inv.get("errorMessages") or []
 			break
