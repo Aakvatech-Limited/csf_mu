@@ -22,12 +22,14 @@ def execute():
 				"fieldtype": "Data",
 				"insert_after": "mra_section",
 				"label": "TAN",
+				"reqd": 1,
 			},
 			{
 				"fieldname": "mra_brn",
 				"fieldtype": "Data",
 				"insert_after": "mra_tan",
 				"label": "BRN",
+				"reqd": 1,
 			},
 			{
 				"fieldname": "mra_column_break_1",
@@ -45,6 +47,7 @@ def execute():
 				"fieldtype": "Small Text",
 				"insert_after": "mra_trade_name",
 				"label": "Business Address",
+				"reqd": 1,
 			},
 			{
 				"fieldname": "mra_business_phone",
