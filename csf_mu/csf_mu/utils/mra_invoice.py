@@ -44,7 +44,7 @@ def create_invoice_log(doc, method=None):
 	log.request_datetime = request_payload.get("requestDateTime")
 	log.response_id = response.get("responseId")
 	log.response_datetime = response.get("responseDateTime")
-	log.status = response.get("status") or "ERRORS"
+	log.status = response.get("status") or "ERROR"
 	log.response_json = json.dumps(response)
 
 	irn = None

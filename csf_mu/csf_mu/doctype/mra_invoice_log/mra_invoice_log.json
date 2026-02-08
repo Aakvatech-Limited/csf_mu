@@ -48,10 +48,9 @@
   {
    "default": "PENDING",
    "fieldname": "status",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Status",
-   "options": "PENDING\nSUCCESS\nERRORS\nHAS_ERRORS"
+   "label": "Status"
   },
   {
    "fieldname": "invoice_identifier",
