@@ -3,11 +3,14 @@
 
 frappe.ui.form.on("Sales Invoice", {
 	refresh(frm) {
-		if (frm.doc.docstatus !== 1) {
-			frm.trigger("set_mra_invoice_type");
-		} else {
-			frm.trigger("set_mra_invoice_type");
-		}
+		frappe.call({
+			method: "csf_mu.csf_mu.utils.mra_invoice.get_prf_trn_setting",
+			callback: (r) => {
+				frm._allow_prf_trn = !!(r && r.message);
+				frm.toggle_display("mra_invoice_type_desc", frm._allow_prf_trn);
+				frm.trigger("set_mra_invoice_type");
+			},
+		});
 
 		const status = (frm.doc.mra_status || "").toUpperCase();
 		if (!["ERROR", "ERRORS"].includes(status)) {
@@ -34,11 +37,16 @@ frappe.ui.form.on("Sales Invoice", {
 	set_mra_invoice_type(frm) {
 		const is_return = !!frm.doc.is_return;
 		const is_debit_note = !!frm.doc.is_debit_note;
-		let invoice_type = "STD";
+		const allow_prf_trn = !!frm._allow_prf_trn;
+		let invoice_type = frm.doc.mra_invoice_type_desc || "STD";
 		if (is_return) {
 			invoice_type = "CRN";
 		} else if (is_debit_note) {
 			invoice_type = "DRN";
+		} else if (!allow_prf_trn) {
+			invoice_type = "STD";
+		} else if (!["STD", "PRF", "TRN"].includes(invoice_type)) {
+			invoice_type = "STD";
 		}
 
 		if (frm.doc.mra_invoice_type_desc !== invoice_type) {

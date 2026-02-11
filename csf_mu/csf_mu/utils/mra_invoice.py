@@ -125,6 +125,11 @@ def resend_invoice_to_mra(sales_invoice):
 
 
 @frappe.whitelist()
+def get_prf_trn_setting():
+	return frappe.db.get_single_value("CSF MU Settings", "enable_prf_trn") or 0
+
+
+@frappe.whitelist()
 def batch_transmit_invoices(sales_invoices):
 	if isinstance(sales_invoices, str):
 		try:

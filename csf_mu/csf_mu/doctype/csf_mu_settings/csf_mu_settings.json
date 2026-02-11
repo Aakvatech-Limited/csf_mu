@@ -25,7 +25,10 @@
   "token_expiry",
   "mra_invoice_counter",
   "column_break_runtime",
-  "max_invoices_per_request"
+  "max_invoices_per_request",
+  "invoice_types_section",
+  "enable_prf_trn",
+  "column_break_invoice_types"
  ],
  "fields": [
   {
@@ -147,6 +150,21 @@
    "fieldtype": "Int",
    "label": "Max Invoices Per Request",
    "read_only": 1
+  },
+  {
+   "fieldname": "invoice_types_section",
+   "fieldtype": "Section Break",
+   "label": "Invoice Types"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_prf_trn",
+   "fieldtype": "Check",
+   "label": "Enable PRF/TRN Invoices"
+  },
+  {
+   "fieldname": "column_break_invoice_types",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
