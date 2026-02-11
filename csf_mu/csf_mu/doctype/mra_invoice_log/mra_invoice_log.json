@@ -132,7 +132,7 @@
    "fieldname": "errors",
    "fieldtype": "Table",
    "label": "Errors",
-   "options": "MRA Invoice Error"
+   "options": "MRA Invoice Log Detail"
   }
  ],
  "grid_page_length": 50,
