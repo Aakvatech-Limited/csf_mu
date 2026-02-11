@@ -77,6 +77,7 @@ def execute():
 				"insert_after": "mra_section",
 				"label": "Buyer Type",
 				"options": "VATR\nNVTR\nEXMP",
+				"mandatory_depends_on": "eval:doc.mra_transaction_type=='B2B' || doc.mra_transaction_type=='B2G'",
 			},
 			{
 				"fieldname": "mra_transaction_type",
@@ -91,12 +92,14 @@ def execute():
 				"fieldtype": "Data",
 				"insert_after": "mra_transaction_type",
 				"label": "TAN",
+				"mandatory_depends_on": "eval:doc.mra_transaction_type=='B2B' || doc.mra_transaction_type=='B2G'",
 			},
 			{
 				"fieldname": "mra_brn",
 				"fieldtype": "Data",
 				"insert_after": "mra_tan",
 				"label": "BRN",
+				"mandatory_depends_on": "eval:doc.mra_transaction_type=='B2B'",
 			},
 			{
 				"fieldname": "mra_business_addr",
