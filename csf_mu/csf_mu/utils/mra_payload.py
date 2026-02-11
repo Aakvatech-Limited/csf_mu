@@ -81,6 +81,23 @@ def _get_invoice_counter(doc):
 	return str(counter)
 
 
+def _resolve_invoice_type(doc):
+	if doc.get("is_return"):
+		return "CRN"
+	if doc.get("is_debit_note"):
+		return "DRN"
+	return doc.get("mra_invoice_type_desc") or "STD"
+
+
+def _validate_credit_debit(doc, invoice_type_desc):
+	if invoice_type_desc not in ("CRN", "DRN"):
+		return
+	if not doc.get("return_against"):
+		frappe.throw("Return Against is required for Credit/Debit Notes (CRN/DRN).")
+	if not doc.get("mra_reason_stated"):
+		frappe.throw("Reason Stated is required for Credit/Debit Notes (CRN/DRN).")
+
+
 def build_mra_invoice_payload(doc):
 	"""Build raw MRA invoice JSON (list with one invoice)."""
 	if isinstance(doc, str):
@@ -92,7 +109,10 @@ def build_mra_invoice_payload(doc):
 	customer = frappe.get_doc("Customer", doc.customer) if doc.customer else None
 	transaction_type = (customer.get("mra_transaction_type") if customer else None) or "B2C"
 
-	invoice_type_desc = doc.get("mra_invoice_type_desc") or "STD"
+	invoice_type_desc = _resolve_invoice_type(doc)
+	_validate_credit_debit(doc, invoice_type_desc)
+	if not doc.get("mra_invoice_type_desc"):
+		doc.db_set("mra_invoice_type_desc", invoice_type_desc, update_modified=False)
 	invoice_ref_identifier = doc.get("return_against") if invoice_type_desc in ("CRN", "DRN") else ""
 	reason_stated = doc.get("mra_reason_stated") if invoice_type_desc in ("CRN", "DRN") else ""
 	invoice_counter = _get_invoice_counter(doc)
