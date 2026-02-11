@@ -1,33 +1,190 @@
-### CSF MU
+# ERPNext Country Specific Functionality for Mauritius (CSF MU)
 
-Country Specific Functionality Mauritius
+## Overview
 
-### Installation
+CSF MU adds Mauritius Revenue Authority (MRA) e‑invoicing support to ERPNext. It introduces the required settings, custom fields, validations, tax code mapping, invoice transmission, and logging.
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app csf_mu
-```
+---
 
-### Contributing
-
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+## Install
 
 ```bash
-cd apps/csf_mu
-pre-commit install
+bench --site <your.site> install-app csf_mu
+bench --site <your.site> migrate
+bench --site <your.site> clear-cache
 ```
 
-Pre-commit is configured to use the following tools for checking and formatting your code:
+---
 
-- ruff
-- eslint
-- prettier
-- pyupgrade
+## Core Setup
 
-### License
+### 1. CSF MU Settings
 
-mit
+Go to **CSF MU Settings** and fill:
+
+- `Auth URL` and `Transmit URL`
+- `Username`, `Password`
+- `EBS MRA ID`, `Area Code`
+- `Public Key Certificate`
+- `Max Invoices Per Request` (read‑only, defaults to 500)
+- Optional: `Enable PRF/TRN Invoices`
+
+Notes:
+- Token + encryption key are cached automatically.
+- `Max Invoices Per Request` limit is enforced for batch requests.
+
+### 2. Company Fields (MRA Tab)
+
+Required:
+- `TAN`
+- `BRN`
+- `Business Address`
+
+Optional:
+- `Trade Name`
+- `Business Phone`
+- `Person Type` (VATR/NVTR)
+
+### 3. Customer Fields (MRA Section)
+
+Required only for B2B/B2G:
+- `Buyer Type`
+- `TAN`
+- `BRN` (B2B only)
+
+Other fields:
+- `Transaction Type` (B2B/B2G/B2C/EXP/B2E)
+- `Business Address`
+- `NIC / NCID`
+
+### 4. Tax Code Mapping
+
+Create **MRA Tax Code Map** records that link:
+- `Item Tax Template`
+- `Tax Code`
+- `Nature` (GOODS or SERVICES)
+
+### 5. Item Tax Template (ERPNext Setup)
+
+**Step 1 — Create Sales Taxes & Charges Template**
+- Go to **Accounts → Sales Taxes and Charges Template**
+- Create or select a VAT template (e.g. VAT 15%)
+- This template defines the tax account (e.g. `VAT - B`) and rate
+
+**Step 2 — Create Item Tax Template**
+- Go to **Accounts → Item Tax Template**
+- Name it clearly (e.g. `MRA TC01 GOODS - B`)
+- Add a tax row pointing to your VAT account and rate
+- Save the template
+
+**Step 3 — Map it to MRA Tax Code**
+- Create an **MRA Tax Code Map**
+- Link the Item Tax Template
+- Choose the correct **Tax Code** and **Nature**
+
+**Step 4 — Assign to Items**
+- On each **Item**, set **Item Tax Template**
+- This is how the system decides which MRA Tax Code to send
+
+Tip:
+- You can also set a **Default Item Tax Template** on the Sales Invoice,
+  but item‑level templates are required if you sell mixed goods/services.
+
+Tax Code meanings (MRA Data Structure):
+- `TC01` = Taxable supplies at 15%
+- `TC02` = Taxable supplies at zero rate
+- `TC03` = Exempt supplies
+- `TC04` = Non‑fiscal items not affecting turnover
+- `TC05` = Standard rated supplies to exempt bodies/persons
+- `TC06` = Supplies outside VAT scope
+
+---
+
+## How It Works
+
+### Sales Invoice
+
+On submit, CSF MU:
+- Validates item tax templates and MRA mapping
+- Validates buyer details for B2B/B2G
+- Validates CRN/DRN requirements
+- Builds payload and transmits to MRA
+- Writes **MRA Invoice Log** and updates `mra_status`
+
+### Credit Note (CRN)
+
+Use **Return / Credit Note** from a submitted invoice.
+- `return_against` is required
+- `Reason Stated` is required
+- `mra_invoice_type_desc` is set to CRN
+
+### Debit Note (DRN)
+
+Use **Is Rate Adjustment Entry (Debit Note)**.
+- `return_against` is required
+- `Reason Stated` is required
+- `mra_invoice_type_desc` is set to DRN
+
+### PRF / TRN
+
+Enable **Enable PRF/TRN Invoices** in settings.
+The **Invoice Type (MRA)** field appears and allows PRF/TRN.
+
+---
+
+## Batch Transmit (Single Request)
+
+Use **Sales Invoice List → Send to MRA (Batch Request)** to send many invoices in one request.
+
+Limits:
+- Max invoices per request: 500
+- Max total items per request: 5000
+
+Progress bar shows processing status.
+
+---
+
+## Logging
+
+### MRA Invoice Log
+
+Stores:
+- Request JSON
+- Response JSON
+- Status
+- IRN
+- QR Code
+- Error details (child table: **MRA Invoice Log Detail**)
+
+---
+
+## Compliance Notes
+
+- `previousNoteHash` is computed automatically using SHA‑256 and chained per invoice type.
+- CRN/DRN must reference a **SUCCESS** fiscalised invoice.
+- Buyer fields are enforced for B2B/B2G.
+
+---
+
+## Troubleshooting
+
+Common causes of rejection:
+- Missing Company TAN/BRN/Address
+- Missing Customer buyer fields for B2B/B2G
+- Missing MRA Tax Code Map
+- Invalid `return_against` for CRN/DRN
+
+---
+
+## Test Case Coverage (MRA Portal)
+
+- STD, CRN, DRN, PRF, TRN supported
+- Batch transmit supports the 10‑invoice test case
+- Failed scenario (wrong TAN) behaves as expected
+
+---
+
+## Support
+
+For project setup or customizations, contact the implementation team.
