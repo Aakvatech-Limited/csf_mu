@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 
 import frappe
 
@@ -6,13 +7,10 @@ from csf_mu.csf_mu.utils.mra_api import sign_payload, transmit_invoice
 from csf_mu.csf_mu.utils.mra_payload import build_mra_invoice_payload
 
 
-def _send_invoice_to_mra(doc, allow_existing_log=False):
+def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
 	existing = frappe.db.exists("MRA Invoice Log", {"sales_invoice": doc.name})
 	if existing and not allow_existing_log:
-		return
-
-	payload_list = build_mra_invoice_payload(doc)
-	payload_json = json.dumps(payload_list)
+		return None
 
 	if existing:
 		log = frappe.get_doc("MRA Invoice Log", existing)
@@ -24,6 +22,8 @@ def _send_invoice_to_mra(doc, allow_existing_log=False):
 		log.request_datetime = ""
 		log.response_id = ""
 		log.response_datetime = ""
+		log.mra_uuid = ""
+		log.mra_qr_code = ""
 		log.set("errors", [])
 		log.save(ignore_permissions=True)
 	else:
@@ -37,6 +37,16 @@ def _send_invoice_to_mra(doc, allow_existing_log=False):
 		doc.db_set("mra_invoice_log", log.name, update_modified=False)
 
 	doc.db_set("mra_status", "PENDING", update_modified=False)
+	return log
+
+
+def _send_invoice_to_mra(doc, allow_existing_log=False):
+	payload_list = build_mra_invoice_payload(doc)
+	payload_json = json.dumps(payload_list)
+
+	log = _reset_or_create_log(doc, payload_json, allow_existing_log=allow_existing_log)
+	if not log:
+		return
 
 	settings = frappe.get_single("CSF MU Settings")
 	if not settings.public_key_certificate:
@@ -112,3 +122,177 @@ def resend_invoice_to_mra(sales_invoice):
 		frappe.throw("Re-send is allowed only for invoices with status ERROR or ERRORS.")
 	_send_invoice_to_mra(doc, allow_existing_log=True)
 	return {"status": doc.get("mra_status")}
+
+
+@frappe.whitelist()
+def batch_transmit_invoices(sales_invoices):
+	if isinstance(sales_invoices, str):
+		try:
+			sales_invoices = json.loads(sales_invoices)
+		except Exception:
+			sales_invoices = [s.strip() for s in sales_invoices.splitlines() if s.strip()]
+
+	if not sales_invoices:
+		frappe.throw("Select one or more Sales Invoices for batch transmit.")
+
+	settings = frappe.get_single("CSF MU Settings")
+	max_per_request = settings.max_invoices_per_request or 500
+	if len(sales_invoices) > max_per_request:
+		frappe.throw(f"Maximum invoices per request is {max_per_request}.")
+
+	eligible = []
+	skipped = []
+	total_items = 0
+	for name in sales_invoices:
+		doc = frappe.get_doc("Sales Invoice", name)
+		if doc.docstatus != 1:
+			frappe.throw(f"Sales Invoice {name} must be submitted before sending to MRA.")
+		status = (doc.get("mra_status") or "").upper()
+		if status == "SUCCESS":
+			skipped.append(name)
+			continue
+		eligible.append(name)
+		total_items += len(doc.items or [])
+
+	if not eligible:
+		frappe.throw("All selected invoices are already SUCCESS.")
+
+	if len(eligible) > max_per_request:
+		frappe.throw(f"Maximum invoices per request is {max_per_request}.")
+
+	if total_items > 5000:
+		frappe.throw("Maximum total items per request is 5000.")
+
+	task_id = uuid4().hex
+	frappe.enqueue(
+		"csf_mu.csf_mu.utils.mra_invoice.batch_transmit_job",
+		queue="long",
+		sales_invoices=eligible,
+		task_id=task_id,
+	)
+	frappe.local.response["task_id"] = task_id
+	return {"queued": len(eligible), "skipped": skipped}
+
+
+def batch_transmit_job(sales_invoices, task_id=None):
+	title = "MRA Batch Transmit"
+	frappe.publish_progress(0, title=title, description="Preparing invoices...", task_id=task_id)
+
+	docs = []
+	for name in sales_invoices:
+		doc = frappe.get_doc("Sales Invoice", name)
+		docs.append(doc)
+
+	payload_list = []
+	for idx, doc in enumerate(docs, start=1):
+		payload_list.extend(build_mra_invoice_payload(doc))
+		percent = int(idx / max(len(docs), 1) * 10)
+		frappe.publish_progress(
+			percent,
+			title=title,
+			description=f"Building payload ({idx}/{len(docs)})",
+			task_id=task_id,
+		)
+
+	payload_json = json.dumps(payload_list)
+
+	logs = {}
+	for doc in docs:
+		log = _reset_or_create_log(doc, payload_json, allow_existing_log=True)
+		if log:
+			logs[doc.name] = log
+
+	settings = frappe.get_single("CSF MU Settings")
+	if not settings.public_key_certificate:
+		for doc in docs:
+			log = logs.get(doc.name)
+			if not log:
+				continue
+			log.status = "ERRORS"
+			log.error_summary = "Public Key Certificate is required in CSF MU Settings."
+			log.save(ignore_permissions=True)
+			doc.db_set("mra_status", "ERRORS", update_modified=False)
+		frappe.publish_progress(100, title=title, description="Failed.", task_id=task_id)
+		return
+
+	try:
+		signed_hash = sign_payload(payload_json, settings)
+		request_payload, response = transmit_invoice(payload_json, signed_hash)
+	except Exception as exc:
+		for doc in docs:
+			log = logs.get(doc.name)
+			if not log:
+				continue
+			log.status = "ERRORS"
+			log.error_summary = str(exc)
+			log.save(ignore_permissions=True)
+			doc.db_set("mra_status", "ERRORS", update_modified=False)
+		frappe.publish_progress(100, title=title, description="Failed.", task_id=task_id)
+		return
+
+	inv_map = {}
+	for inv in response.get("fiscalisedInvoices") or []:
+		if inv.get("invoiceIdentifier"):
+			inv_map[inv.get("invoiceIdentifier")] = inv
+
+	for idx, doc in enumerate(docs, start=1):
+		log = logs.get(doc.name)
+		if not log:
+			continue
+
+		log.request_id = request_payload.get("requestId")
+		log.request_datetime = request_payload.get("requestDateTime")
+		log.response_id = response.get("responseId")
+		log.response_datetime = response.get("responseDateTime")
+		log.response_json = json.dumps(response)
+
+		inv_resp = inv_map.get(doc.name)
+		if not inv_resp:
+			log.status = "ERRORS"
+			log.error_summary = "No response for invoice in batch transmit."
+			log.save(ignore_permissions=True)
+			doc.db_set("mra_status", log.status, update_modified=False)
+			continue
+
+		log.status = inv_resp.get("status") or response.get("status") or "ERROR"
+
+		irn = inv_resp.get("irn") or inv_resp.get("uuid")
+		qr_code = inv_resp.get("qrCode")
+		errors = inv_resp.get("errorMessages") or []
+
+		log.mra_uuid = irn or ""
+		log.mra_qr_code = qr_code or ""
+
+		if irn:
+			doc.db_set("mra_uuid", irn, update_modified=False)
+		if qr_code:
+			doc.db_set("mra_qr_code", qr_code, update_modified=False)
+
+		if errors:
+			log.error_summary = errors[0].get("description") if errors else ""
+			log.set("errors", [])
+			for err in errors:
+				log.append(
+					"errors",
+					{
+						"invoice_identifier": doc.name,
+						"code": err.get("code"),
+						"description": err.get("description"),
+					},
+				)
+		else:
+			log.error_summary = ""
+			log.set("errors", [])
+
+		log.save(ignore_permissions=True)
+		doc.db_set("mra_status", log.status, update_modified=False)
+
+		percent = int(idx / max(len(docs), 1) * 100)
+		frappe.publish_progress(
+			percent,
+			title=title,
+			description=f"Processed {idx}/{len(docs)}",
+			task_id=task_id,
+		)
+
+	frappe.publish_progress(100, title=title, description="Completed.", task_id=task_id)
