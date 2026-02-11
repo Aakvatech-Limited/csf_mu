@@ -1,3 +1,5 @@
+import hashlib
+
 import frappe
 from frappe.utils import cint, get_datetime
 
@@ -105,6 +107,45 @@ def _normalize_amount(value, invoice_type_desc):
 	return amount
 
 
+def _compute_previous_note_hash(previous_doc, invoice_type_desc):
+	company = frappe.get_doc("Company", previous_doc.company)
+	brn = company.get("mra_brn") or ""
+	posting_time = previous_doc.posting_time or "00:00:00"
+	date_time = _format_mra_datetime(f"{previous_doc.posting_date} {posting_time}")
+	total_amt_paid = _normalize_amount(previous_doc.grand_total, invoice_type_desc)
+	if int(total_amt_paid) == total_amt_paid:
+		total_amt_paid = int(total_amt_paid)
+	invoice_identifier = previous_doc.name
+
+	raw = f"{date_time}{total_amt_paid}{brn}{invoice_identifier}"
+	return hashlib.sha256(raw.encode()).hexdigest().upper()
+
+
+def _get_previous_note_hash(doc, invoice_type_desc):
+	prev_hash = doc.get("mra_previous_note_hash")
+	if prev_hash:
+		return prev_hash
+
+	previous_doc_name = frappe.db.get_value(
+		"Sales Invoice",
+		{
+			"docstatus": 1,
+			"company": doc.company,
+			"mra_invoice_type_desc": invoice_type_desc,
+			"mra_status": "SUCCESS",
+			"name": ("!=", doc.name),
+		},
+		"name",
+		order_by="posting_date desc, posting_time desc, creation desc",
+	)
+
+	if not previous_doc_name:
+		return "0"
+
+	previous_doc = frappe.get_doc("Sales Invoice", previous_doc_name)
+	return _compute_previous_note_hash(previous_doc, invoice_type_desc)
+
+
 def build_mra_invoice_payload(doc):
 	"""Build raw MRA invoice JSON (list with one invoice)."""
 	if isinstance(doc, str):
@@ -173,7 +214,7 @@ def build_mra_invoice_payload(doc):
 		"invoiceIdentifier": doc.name,
 		"invoiceCounter": invoice_counter,
 		"invoiceRefIdentifier": invoice_ref_identifier,
-		"previousNoteHash": doc.get("mra_previous_note_hash") or "0",
+		"previousNoteHash": _get_previous_note_hash(doc, invoice_type_desc),
 		"reasonStated": reason_stated,
 		"dateTimeInvoiceIssued": _format_mra_datetime(f"{doc.posting_date} {posting_time}"),
 		"totalVatAmount": str(round(total_vat_amount, 2)),
