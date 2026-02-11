@@ -49,6 +49,13 @@ def validate_sales_invoice_items_for_mra(doc, method=None):
 			frappe.throw("Return Against is required for Credit/Debit Notes (CRN/DRN).")
 		if not doc.get("mra_reason_stated"):
 			frappe.throw("Reason Stated is required for Credit/Debit Notes (CRN/DRN).")
+		ref_status = frappe.db.get_value(
+			"Sales Invoice",
+			doc.get("return_against"),
+			"mra_status",
+		)
+		if (ref_status or "").upper() != "SUCCESS":
+			frappe.throw("Return Against must reference a fiscalised (SUCCESS) invoice.")
 	missing_templates = []
 	missing_maps = []
 
