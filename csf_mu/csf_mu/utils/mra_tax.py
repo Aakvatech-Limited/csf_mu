@@ -31,6 +31,18 @@ def validate_sales_invoice_items_for_mra(doc, method=None):
 	public_key = frappe.db.get_single_value("CSF MU Settings", "public_key_certificate")
 	if not public_key:
 		return
+	if doc.get("is_return"):
+		doc.mra_invoice_type_desc = "CRN"
+	elif doc.get("is_debit_note"):
+		doc.mra_invoice_type_desc = "DRN"
+	elif not doc.get("mra_invoice_type_desc"):
+		doc.mra_invoice_type_desc = "STD"
+
+	if doc.mra_invoice_type_desc in ("CRN", "DRN"):
+		if not doc.get("return_against"):
+			frappe.throw("Return Against is required for Credit/Debit Notes (CRN/DRN).")
+		if not doc.get("mra_reason_stated"):
+			frappe.throw("Reason Stated is required for Credit/Debit Notes (CRN/DRN).")
 	missing_templates = []
 	missing_maps = []
 
