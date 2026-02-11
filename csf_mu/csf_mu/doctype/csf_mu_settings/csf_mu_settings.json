@@ -23,6 +23,7 @@
   "runtime_section",
   "token",
   "token_expiry",
+  "mra_encryption_key",
   "mra_invoice_counter",
   "column_break_runtime",
   "max_invoices_per_request",
@@ -125,6 +126,7 @@
   {
    "fieldname": "token",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Token",
    "read_only": 1
   },
@@ -132,6 +134,12 @@
    "fieldname": "token_expiry",
    "fieldtype": "Datetime",
    "label": "Token Expiry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mra_encryption_key",
+   "fieldtype": "Password",
+   "label": "MRA Encryption Key",
    "read_only": 1
   },
   {
@@ -171,7 +179,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-02-07 14:23:11.592113",
+ "modified": "2026-02-11 16:32:15.671743",
  "modified_by": "Administrator",
  "module": "CSF MU",
  "name": "CSF MU Settings",

@@ -1,7 +1,7 @@
 import base64
 import json
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import frappe
 import requests
@@ -87,12 +87,36 @@ def _format_mra_datetime(dt):
 	return get_datetime(dt).strftime(MRA_DATETIME_FORMAT)
 
 
+def _parse_mra_datetime(value):
+	if not value:
+		return None
+	if isinstance(value, datetime):
+		return value
+	try:
+		return get_datetime(value)
+	except Exception:
+		pass
+	try:
+		return datetime.strptime(str(value), MRA_DATETIME_FORMAT)
+	except Exception:
+		return None
+
+
 def get_token_and_mra_key():
 	settings = _settings()
 	if not settings.public_key_certificate:
 		frappe.throw("Public Key Certificate is required in CSF MU Settings.")
 
 	now = now_datetime()
+	cached_token = settings.token
+	cached_key_b64 = settings.get_password("mra_encryption_key")
+	expiry_dt = _parse_mra_datetime(settings.token_expiry)
+	if cached_token and cached_key_b64 and expiry_dt:
+		if expiry_dt - TOKEN_REFRESH_BUFFER > now:
+			try:
+				return cached_token, base64.b64decode(cached_key_b64)
+			except Exception:
+				pass
 
 	cert_path = _resolve_file_path(settings.public_key_certificate)
 	if not cert_path or not os.path.exists(cert_path):
@@ -135,7 +159,11 @@ def get_token_and_mra_key():
 		frappe.throw(str(data))
 
 	settings.db_set("token", data.get("token"), update_modified=False)
-	settings.db_set("token_expiry", data.get("expiryDate"), update_modified=False)
+	expiry_dt = _parse_mra_datetime(data.get("expiryDate"))
+	if expiry_dt:
+		settings.db_set("token_expiry", expiry_dt, update_modified=False)
+	else:
+		settings.db_set("token_expiry", data.get("expiryDate"), update_modified=False)
 
 	encrypted_key_b64 = data.get("key") or ""
 	if not encrypted_key_b64:
@@ -146,6 +174,12 @@ def get_token_and_mra_key():
 		mra_key = base64.b64decode(decrypted)
 	except Exception:
 		mra_key = decrypted
+	try:
+		settings.set_password(
+			"mra_encryption_key", base64.b64encode(mra_key).decode()
+		)
+	except Exception:
+		pass
 
 	return data.get("token"), mra_key
 
