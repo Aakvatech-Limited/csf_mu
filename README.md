@@ -70,13 +70,18 @@ Create **MRA Tax Code Map** records that link:
 **Step 1 — Create Sales Taxes & Charges Template**
 - Go to **Accounts → Sales Taxes and Charges Template**
 - Create or select a VAT template (e.g. VAT 15%)
-- This template defines the tax account (e.g. `VAT - B`) and rate
+- This template defines the tax account (use your company VAT account) and rate
 
 **Step 2 — Create Item Tax Template**
 - Go to **Accounts → Item Tax Template**
 - Name it clearly (e.g. `MRA TC01 GOODS - B`)
-- Add a tax row pointing to your VAT account and rate
+- Add a tax row pointing to your company VAT account and rate
 - Save the template
+
+Auto‑create option:
+- On **Company**, click **Create MRA Item Tax Templates**.
+- This generates standard MRA templates and maps them to tax codes.  
+  Update the tax accounts/rates to match your company setup if needed.
 
 **Step 3 — Map it to MRA Tax Code**
 - Create an **MRA Tax Code Map**
