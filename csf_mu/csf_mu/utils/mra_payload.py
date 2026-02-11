@@ -98,6 +98,13 @@ def _validate_credit_debit(doc, invoice_type_desc):
 		frappe.throw("Reason Stated is required for Credit/Debit Notes (CRN/DRN).")
 
 
+def _normalize_amount(value, invoice_type_desc):
+	amount = float(value or 0)
+	if invoice_type_desc in ("CRN", "DRN"):
+		return abs(amount)
+	return amount
+
+
 def build_mra_invoice_payload(doc):
 	"""Build raw MRA invoice JSON (list with one invoice)."""
 	if isinstance(doc, str):
@@ -124,9 +131,10 @@ def build_mra_invoice_payload(doc):
 	for row in doc.items:
 		mapping = get_mra_tax_map(row.item_tax_template)
 		tax_rate = _get_item_tax_rate(row.item_tax_template)
-		amt_wo_vat = float(row.net_amount or 0)
+		amt_wo_vat = _normalize_amount(row.net_amount, invoice_type_desc)
 		vat_amt = round(amt_wo_vat * tax_rate / 100, 2)
 		total_price = amt_wo_vat + vat_amt
+		quantity = _normalize_amount(row.qty, invoice_type_desc)
 
 		item = {
 			"itemNo": str(row.idx),
@@ -135,8 +143,8 @@ def build_mra_invoice_payload(doc):
 			"itemDesc": row.item_name or row.description or row.item_code,
 			"productCodeMra": "",
 			"productCodeOwn": row.item_code or "",
-			"unitPrice": str(row.rate or 0),
-			"quantity": str(row.qty or 0),
+			"unitPrice": str(_normalize_amount(row.rate, invoice_type_desc)),
+			"quantity": str(quantity),
 			"discount": str(row.discount_amount or 0),
 			"discountedValue": str(amt_wo_vat),
 			"amtWoVatCur": str(amt_wo_vat),
@@ -145,15 +153,17 @@ def build_mra_invoice_payload(doc):
 		}
 
 		if doc.currency and doc.currency != "MUR":
-			item["amtWoVatMur"] = str(float(row.base_net_amount or 0))
+			item["amtWoVatMur"] = str(
+				_normalize_amount(row.base_net_amount, invoice_type_desc)
+			)
 
 		items.append(item)
 		total_vat_amount += vat_amt
 		total_amt_wo_vat_cur += amt_wo_vat
 
 	invoice_total = round(total_vat_amount + total_amt_wo_vat_cur, 2)
-	discount_total = float(doc.discount_amount or 0)
-	total_amt_paid = float(doc.grand_total or invoice_total)
+	discount_total = _normalize_amount(doc.discount_amount, invoice_type_desc)
+	total_amt_paid = _normalize_amount(doc.grand_total or invoice_total, invoice_type_desc)
 
 	posting_time = doc.posting_time or "00:00:00"
 	payload = {
@@ -178,7 +188,9 @@ def build_mra_invoice_payload(doc):
 	}
 
 	if doc.currency and doc.currency != "MUR":
-		payload["totalAmtWoVatMur"] = str(float(doc.base_net_total or 0))
+		payload["totalAmtWoVatMur"] = str(
+			_normalize_amount(doc.base_net_total, invoice_type_desc)
+		)
 
 	buyer = _get_buyer_details(doc.customer)
 	if buyer:
