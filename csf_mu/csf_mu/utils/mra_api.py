@@ -109,7 +109,7 @@ def get_token_and_mra_key():
 
 	now = now_datetime()
 	cached_token = settings.token
-	cached_key_b64 = settings.get_password("mra_encryption_key")
+	cached_key_b64 = settings.get_password("mra_encryption_key", raise_exception=False)
 	expiry_dt = _parse_mra_datetime(settings.token_expiry)
 	if cached_token and cached_key_b64 and expiry_dt:
 		if expiry_dt - TOKEN_REFRESH_BUFFER > now:
