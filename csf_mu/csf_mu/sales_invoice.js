@@ -33,7 +33,6 @@ frappe.ui.form.on("Sales Invoice", {
 	load_prf_trn_setting(frm) {
 		if (!frm.doc.company) {
 			frm._allow_prf_trn = false;
-			frm.toggle_display("mra_invoice_type_desc", false);
 			frm.trigger("set_mra_invoice_type");
 			return;
 		}
@@ -42,7 +41,6 @@ frappe.ui.form.on("Sales Invoice", {
 			args: { company: frm.doc.company },
 			callback: (r) => {
 				frm._allow_prf_trn = !!(r && r.message);
-				frm.toggle_display("mra_invoice_type_desc", frm._allow_prf_trn);
 				frm.trigger("set_mra_invoice_type");
 			},
 		});
@@ -61,6 +59,10 @@ frappe.ui.form.on("Sales Invoice", {
 		} else if (!["STD", "PRF", "TRN"].includes(invoice_type)) {
 			invoice_type = "STD";
 		}
+
+		const read_only_invoice_type =
+			!allow_prf_trn || is_return || is_debit_note || frm.doc.docstatus === 1;
+		frm.set_df_property("mra_invoice_type_desc", "read_only", read_only_invoice_type ? 1 : 0);
 
 		if (frm.doc.mra_invoice_type_desc !== invoice_type) {
 			frm.set_value("mra_invoice_type_desc", invoice_type);
