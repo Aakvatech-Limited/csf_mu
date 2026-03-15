@@ -23,16 +23,21 @@ bench --site <your.site> clear-cache
 
 Go to **CSF MU Settings** and fill:
 
-- `Auth URL` and `Transmit URL`
-- `Username`, `Password`
-- `EBS MRA ID`, `Area Code`
-- `Public Key Certificate`
-- `Max Invoices Per Request` (read‑only, defaults to 500)
-- Optional: `Enable PRF/TRN Invoices`
+- Main screen fields:
+  - `Auth URL`
+  - `Transmit URL`
+- Add one row per company in **Settings Details** and fill:
+  - `Company`
+  - `Username`, `Password`
+  - `EBS MRA ID`, `Area Code`
+  - `Public Key Certificate`
+  - `Max Invoices Per Request` (default 500)
+  - Optional: `Enable PRF/TRN Invoices`
+  - Optional: `Auto Send to MRA on Submit`
 
 Notes:
-- Token + encryption key are cached automatically.
-- `Max Invoices Per Request` limit is enforced for batch requests.
+- Token + encryption key are cached per company settings row.
+- `Max Invoices Per Request` is enforced per company.
 
 ### 2. Company Fields (MRA Tab)
 
@@ -114,8 +119,8 @@ On submit, CSF MU:
 - Validates item tax templates and MRA mapping
 - Validates buyer details for B2B/B2G
 - Validates CRN/DRN requirements
-- Builds payload and transmits to MRA
-- Writes **MRA Invoice Log** and updates `mra_status`
+- Builds payload and transmits to MRA (if `Auto Send to MRA on Submit` is enabled)
+- Writes **MRA Einvoice Log** and updates `mra_status`
 
 ### Credit Note (CRN)
 
@@ -133,7 +138,7 @@ Use **Is Rate Adjustment Entry (Debit Note)**.
 
 ### PRF / TRN
 
-Enable **Enable PRF/TRN Invoices** in settings.
+Enable **Enable PRF/TRN Invoices** in the company row under **Settings Details**.
 The **Invoice Type (MRA)** field appears and allows PRF/TRN.
 
 ---
@@ -145,6 +150,7 @@ Use **Sales Invoice List → Send to MRA (Batch Request)** to send many invoices
 Limits:
 - Max invoices per request: 500
 - Max total items per request: 5000
+- Single company per batch request
 
 Progress bar shows processing status.
 
@@ -152,7 +158,7 @@ Progress bar shows processing status.
 
 ## Logging
 
-### MRA Invoice Log
+### MRA Einvoice Log
 
 Stores:
 - Request JSON

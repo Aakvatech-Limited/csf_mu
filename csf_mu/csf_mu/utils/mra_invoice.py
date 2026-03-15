@@ -13,12 +13,12 @@ from csf_mu.csf_mu.utils.mra_settings import (
 
 
 def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
-	existing = frappe.db.exists("MRA Invoice Log", {"sales_invoice": doc.name})
+	existing = frappe.db.exists("MRA Einvoice Log", {"sales_invoice": doc.name})
 	if existing and not allow_existing_log:
 		return None
 
 	if existing:
-		log = frappe.get_doc("MRA Invoice Log", existing)
+		log = frappe.get_doc("MRA Einvoice Log", existing)
 		log.status = "PENDING"
 		log.error_summary = ""
 		log.request_json = payload_json
@@ -32,7 +32,7 @@ def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
 		log.set("errors", [])
 		log.save(ignore_permissions=True)
 	else:
-		log = frappe.new_doc("MRA Invoice Log")
+		log = frappe.new_doc("MRA Einvoice Log")
 		log.sales_invoice = doc.name
 		log.company = doc.company
 		log.status = "PENDING"

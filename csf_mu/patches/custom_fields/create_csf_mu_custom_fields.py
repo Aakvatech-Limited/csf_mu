@@ -186,9 +186,9 @@ def execute():
 				"fieldname": "mra_invoice_log",
 				"fieldtype": "Link",
 				"insert_after": "mra_qr_code",
-				"label": "MRA Invoice Log",
+				"label": "MRA Einvoice Log",
 				"no_copy": 1,
-				"options": "MRA Invoice Log",
+				"options": "MRA Einvoice Log",
 				"read_only": 1,
 			},
 		]
