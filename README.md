@@ -170,7 +170,7 @@ Stores:
 - Status
 - IRN
 - QR Code
-- Error details (child table: **MRA Invoice Log Detail**)
+- Error Summary
 
 Note:
 - The log doctype name is **MRA Einvoice Log**.

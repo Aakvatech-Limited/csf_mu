@@ -22,9 +22,7 @@
   "error_summary",
   "section_break_payloads",
   "request_json",
-  "response_json",
-  "section_break_errors",
-  "errors"
+  "response_json"
  ],
  "fields": [
   {
@@ -122,17 +120,6 @@
    "fieldtype": "Code",
    "label": "Response JSON",
    "options": "JSON"
-  },
-  {
-   "fieldname": "section_break_errors",
-   "fieldtype": "Section Break",
-   "label": "Errors"
-  },
-  {
-   "fieldname": "errors",
-   "fieldtype": "Table",
-   "label": "Errors",
-   "options": "MRA Invoice Log Detail"
   }
  ],
  "grid_page_length": 50,

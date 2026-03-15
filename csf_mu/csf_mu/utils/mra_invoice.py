@@ -29,7 +29,6 @@ def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
 		log.response_datetime = ""
 		log.mra_uuid = ""
 		log.mra_qr_code = ""
-		log.set("errors", [])
 		log.save(ignore_permissions=True)
 	else:
 		log = frappe.new_doc("MRA Einvoice Log")
@@ -109,17 +108,9 @@ def _send_invoice_to_mra(doc, allow_existing_log=False):
 		doc.db_set("mra_qr_code", qr_code, update_modified=False)
 
 	if errors:
-		log.error_summary = errors[0].get("description") if errors else ""
-		log.set("errors", [])
-		for err in errors:
-			log.append(
-				"errors",
-				{
-					"invoice_identifier": doc.name,
-					"code": err.get("code"),
-					"description": err.get("description"),
-				},
-			)
+		log.error_summary = json.dumps(errors)
+	elif (response.get("status") or "").upper() in ("ERROR", "ERRORS", "HAS_ERRORS"):
+		log.error_summary = json.dumps(response.get("errorMessages") or [])
 
 	log.save(ignore_permissions=True)
 	doc.db_set("mra_status", log.status, update_modified=False)
@@ -318,20 +309,11 @@ def batch_transmit_job(sales_invoices, company=None, task_id=None):
 			doc.db_set("mra_qr_code", qr_code, update_modified=False)
 
 		if errors:
-			log.error_summary = errors[0].get("description") if errors else ""
-			log.set("errors", [])
-			for err in errors:
-				log.append(
-					"errors",
-					{
-						"invoice_identifier": doc.name,
-						"code": err.get("code"),
-						"description": err.get("description"),
-					},
-				)
+			log.error_summary = json.dumps(errors)
+		elif (log.status or "").upper() in ("ERROR", "ERRORS", "HAS_ERRORS"):
+			log.error_summary = json.dumps(response.get("errorMessages") or [])
 		else:
 			log.error_summary = ""
-			log.set("errors", [])
 
 		log.save(ignore_permissions=True)
 		doc.db_set("mra_status", log.status, update_modified=False)
