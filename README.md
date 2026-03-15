@@ -38,6 +38,8 @@ Go to **CSF MU Settings** and fill:
 Notes:
 - Token + encryption key are cached per company settings row.
 - `Max Invoices Per Request` is enforced per company.
+- If `Auto Send to MRA on Submit` is off, users can still send invoices manually using
+  **Re-Send to MRA** (single invoice) or **Send to MRA (Batch Request)** from list view.
 
 ### 2. Company Fields (MRA Tab)
 
@@ -140,6 +142,8 @@ Use **Is Rate Adjustment Entry (Debit Note)**.
 
 Enable **Enable PRF/TRN Invoices** in the company row under **Settings Details**.
 The **Invoice Type (MRA)** field appears and allows PRF/TRN.
+If disabled, the field is hidden and invoice type is constrained by the standard flow
+(STD/CRN/DRN).
 
 ---
 
@@ -167,6 +171,9 @@ Stores:
 - IRN
 - QR Code
 - Error details (child table: **MRA Invoice Log Detail**)
+
+Note:
+- The log doctype name is **MRA Einvoice Log**.
 
 ---
 
