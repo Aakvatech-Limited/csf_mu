@@ -134,12 +134,14 @@ def execute():
 				"label": "Invoice Type (MRA)",
 				"options": "STD\nPRF\nTRN\nCRN\nDRN",
 				"default": "STD",
+				"no_copy": 1,
 			},
 			{
 				"fieldname": "mra_reason_stated",
 				"fieldtype": "Small Text",
 				"insert_after": "mra_invoice_type_desc",
 				"label": "Reason Stated (MRA)",
+				"no_copy": 1,
 			},
 			{
 				"fieldname": "mra_previous_note_hash",
