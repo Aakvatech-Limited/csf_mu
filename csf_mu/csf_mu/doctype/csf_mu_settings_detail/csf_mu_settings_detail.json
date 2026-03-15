@@ -137,6 +137,7 @@
    "fieldname": "max_invoices_per_request",
    "fieldtype": "Int",
    "label": "Max Invoices Per Request",
+   "read_only": 1,
    "reqd": 1
   },
   {
