@@ -116,9 +116,15 @@ def execute():
 		],
 		"Sales Invoice": [
 			{
+				"fieldname": "mra_tab",
+				"fieldtype": "Tab Break",
+				"insert_after": "remarks",
+				"label": "MRA",
+			},
+			{
 				"fieldname": "mra_section",
 				"fieldtype": "Section Break",
-				"insert_after": "taxes_and_charges",
+				"insert_after": "mra_tab",
 				"label": "MRA",
 			},
 			{
