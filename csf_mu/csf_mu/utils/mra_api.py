@@ -12,6 +12,11 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from frappe.utils import get_datetime, get_site_path, now_datetime
 
+from csf_mu.csf_mu.utils.mra_settings import (
+	get_company_mra_settings,
+	get_mra_settings,
+)
+
 
 MRA_DATETIME_FORMAT = "%Y%m%d %H:%M:%S"
 TOKEN_REFRESH_BUFFER = timedelta(minutes=10)
@@ -64,21 +69,17 @@ def _aes_ecb_decrypt(key, data):
 	return unpadder.update(decrypted) + unpadder.finalize()
 
 
-def _settings():
-	return frappe.get_single("CSF MU Settings")
-
-
-def _auth_headers(settings):
+def _auth_headers(settings_detail):
 	return {
-		"username": settings.username,
-		"ebsMraId": settings.ebs_mra_id,
-		"areaCode": settings.area_code,
+		"username": settings_detail.username,
+		"ebsMraId": settings_detail.ebs_mra_id,
+		"areaCode": settings_detail.area_code,
 		"Content-Type": "application/json",
 	}
 
 
-def _transmit_headers(settings, token):
-	headers = _auth_headers(settings)
+def _transmit_headers(settings_detail, token):
+	headers = _auth_headers(settings_detail)
 	headers["token"] = token
 	return headers
 
@@ -102,15 +103,21 @@ def _parse_mra_datetime(value):
 		return None
 
 
-def get_token_and_mra_key():
-	settings = _settings()
-	if not settings.public_key_certificate:
-		frappe.throw("Public Key Certificate is required in CSF MU Settings.")
+def get_token_and_mra_key(company, settings=None, settings_detail=None):
+	settings = settings or get_mra_settings()
+	settings_detail = settings_detail or get_company_mra_settings(company)
+
+	if not settings_detail.public_key_certificate:
+		frappe.throw(
+			f"Public Key Certificate is required in CSF MU Settings Detail for company {company}."
+		)
 
 	now = now_datetime()
-	cached_token = settings.token
-	cached_key_b64 = settings.get_password("mra_encryption_key", raise_exception=False)
-	expiry_dt = _parse_mra_datetime(settings.token_expiry)
+	cached_token = settings_detail.token
+	cached_key_b64 = settings_detail.get_password(
+		"mra_encryption_key", raise_exception=False
+	)
+	expiry_dt = _parse_mra_datetime(settings_detail.token_expiry)
 	if cached_token and cached_key_b64 and expiry_dt:
 		if expiry_dt - TOKEN_REFRESH_BUFFER > now:
 			try:
@@ -118,7 +125,7 @@ def get_token_and_mra_key():
 			except Exception:
 				pass
 
-	cert_path = _resolve_file_path(settings.public_key_certificate)
+	cert_path = _resolve_file_path(settings_detail.public_key_certificate)
 	if not cert_path or not os.path.exists(cert_path):
 		frappe.throw("Public Key Certificate file not found.")
 
@@ -126,9 +133,9 @@ def get_token_and_mra_key():
 	aes_key = os.urandom(32)
 	encrypt_key_b64 = base64.b64encode(aes_key).decode()
 
-	password = settings.get_password("password") or ""
+	password = settings_detail.get_password("password") or ""
 	payload = {
-		"username": settings.username,
+		"username": settings_detail.username,
 		"password": password,
 		"encryptKey": encrypt_key_b64,
 		"refreshToken": "true",
@@ -145,7 +152,7 @@ def get_token_and_mra_key():
 
 	resp = requests.post(
 		settings.auth_url,
-		headers=_auth_headers(settings),
+		headers=_auth_headers(settings_detail),
 		json=auth_request,
 		timeout=DEFAULT_TIMEOUT,
 	)
@@ -158,12 +165,14 @@ def get_token_and_mra_key():
 	if data.get("status") != "SUCCESS":
 		frappe.throw(str(data))
 
-	settings.db_set("token", data.get("token"), update_modified=False)
+	settings_detail.db_set("token", data.get("token"), update_modified=False)
 	expiry_dt = _parse_mra_datetime(data.get("expiryDate"))
 	if expiry_dt:
-		settings.db_set("token_expiry", expiry_dt, update_modified=False)
+		settings_detail.db_set("token_expiry", expiry_dt, update_modified=False)
 	else:
-		settings.db_set("token_expiry", data.get("expiryDate"), update_modified=False)
+		settings_detail.db_set(
+			"token_expiry", data.get("expiryDate"), update_modified=False
+		)
 
 	encrypted_key_b64 = data.get("key") or ""
 	if not encrypted_key_b64:
@@ -175,7 +184,7 @@ def get_token_and_mra_key():
 	except Exception:
 		mra_key = decrypted
 	try:
-		settings.set_password(
+		settings_detail.set_password(
 			"mra_encryption_key", base64.b64encode(mra_key).decode()
 		)
 	except Exception:
@@ -184,13 +193,13 @@ def get_token_and_mra_key():
 	return data.get("token"), mra_key
 
 
-def sign_payload(payload_json, settings):
-	if not settings.enable_invoice_signature:
+def sign_payload(payload_json, settings_detail):
+	if not settings_detail.enable_invoice_signature:
 		return ""
-	if not settings.private_key_file:
+	if not settings_detail.private_key_file:
 		frappe.throw("Private Key File is required when invoice signature is enabled.")
 
-	key_path = _resolve_file_path(settings.private_key_file)
+	key_path = _resolve_file_path(settings_detail.private_key_file)
 	if not key_path or not os.path.exists(key_path):
 		frappe.throw("Private Key File not found.")
 
@@ -210,9 +219,12 @@ def encrypt_invoice(payload_json, mra_key):
 	return base64.b64encode(encrypted).decode()
 
 
-def transmit_invoice(payload_json, signed_hash):
-	settings = _settings()
-	token, mra_key = get_token_and_mra_key()
+def transmit_invoice(payload_json, signed_hash, company, settings=None, settings_detail=None):
+	settings = settings or get_mra_settings()
+	settings_detail = settings_detail or get_company_mra_settings(company)
+	token, mra_key = get_token_and_mra_key(
+		company=company, settings=settings, settings_detail=settings_detail
+	)
 
 	request_id = now_datetime().strftime("%Y%m%d%H%M%S")
 	request_datetime = _format_mra_datetime(now_datetime())
@@ -228,7 +240,7 @@ def transmit_invoice(payload_json, signed_hash):
 
 	resp = requests.post(
 		settings.transmit_url,
-		headers=_transmit_headers(settings, token),
+		headers=_transmit_headers(settings_detail, token),
 		json=request_payload,
 		timeout=DEFAULT_TIMEOUT,
 	)

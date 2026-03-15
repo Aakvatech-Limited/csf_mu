@@ -4,6 +4,7 @@ import frappe
 from frappe.utils import cint, get_datetime
 
 from csf_mu.csf_mu.utils.mra_tax import get_mra_tax_map
+from csf_mu.csf_mu.utils.mra_settings import get_company_mra_settings
 
 
 MRA_DATETIME_FORMAT = "%Y%m%d %H:%M:%S"
@@ -60,16 +61,11 @@ def _get_buyer_details(customer_name):
 	}
 
 
-def _reserve_invoice_counter():
-	singles = frappe.db.get_singles_dict("CSF MU Settings", for_update=True)
-	current = cint(singles.get("mra_invoice_counter") or 0)
+def _reserve_invoice_counter(company):
+	settings_detail = get_company_mra_settings(company, for_update=True)
+	current = cint(settings_detail.get("mra_invoice_counter") or 0)
 	next_counter = current + 1
-	frappe.db.set_single_value(
-		"CSF MU Settings",
-		"mra_invoice_counter",
-		next_counter,
-		update_modified=False,
-	)
+	settings_detail.db_set("mra_invoice_counter", next_counter, update_modified=False)
 	return next_counter
 
 
@@ -78,7 +74,7 @@ def _get_invoice_counter(doc):
 	if counter:
 		return str(counter)
 
-	counter = _reserve_invoice_counter()
+	counter = _reserve_invoice_counter(doc.company)
 	doc.db_set("mra_invoice_counter", counter, update_modified=False)
 	return str(counter)
 

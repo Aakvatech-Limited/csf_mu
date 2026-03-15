@@ -1,0 +1,166 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-15 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "credentials_section",
+  "username",
+  "password",
+  "column_break_credentials",
+  "ebs_mra_id",
+  "area_code",
+  "keys_section",
+  "public_key_certificate",
+  "column_break_keys",
+  "enable_invoice_signature",
+  "private_key_file",
+  "runtime_section",
+  "token",
+  "token_expiry",
+  "mra_encryption_key",
+  "mra_invoice_counter",
+  "column_break_runtime",
+  "max_invoices_per_request",
+  "invoice_types_section",
+  "enable_prf_trn"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Credentials"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Username",
+   "reqd": 1
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_credentials",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ebs_mra_id",
+   "fieldtype": "Data",
+   "label": "EBS MRA ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "area_code",
+   "fieldtype": "Data",
+   "label": "Area Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "keys_section",
+   "fieldtype": "Section Break",
+   "label": "Keys"
+  },
+  {
+   "fieldname": "public_key_certificate",
+   "fieldtype": "Attach",
+   "label": "Public Key Certificate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_keys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_invoice_signature",
+   "fieldtype": "Check",
+   "label": "Enable Invoice Signature"
+  },
+  {
+   "depends_on": "eval:doc.enable_invoice_signature",
+   "fieldname": "private_key_file",
+   "fieldtype": "Attach",
+   "label": "Private Key File"
+  },
+  {
+   "fieldname": "runtime_section",
+   "fieldtype": "Section Break",
+   "label": "Runtime"
+  },
+  {
+   "fieldname": "token",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "token_expiry",
+   "fieldtype": "Datetime",
+   "label": "Token Expiry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mra_encryption_key",
+   "fieldtype": "Password",
+   "label": "MRA Encryption Key",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "mra_invoice_counter",
+   "fieldtype": "Int",
+   "label": "Invoice Counter"
+  },
+  {
+   "fieldname": "column_break_runtime",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "500",
+   "fieldname": "max_invoices_per_request",
+   "fieldtype": "Int",
+   "label": "Max Invoices Per Request",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice_types_section",
+   "fieldtype": "Section Break",
+   "label": "Invoice Types"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_prf_trn",
+   "fieldtype": "Check",
+   "label": "Enable PRF/TRN Invoices"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "CSF MU Settings Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

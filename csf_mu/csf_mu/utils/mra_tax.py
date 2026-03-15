@@ -1,6 +1,8 @@
 import frappe
 from frappe.utils import cint
 
+from csf_mu.csf_mu.utils.mra_settings import get_company_mra_settings
+
 
 def get_mra_tax_map(item_tax_template: str) -> dict:
 	"""Return mapping for the given Item Tax Template.
@@ -29,12 +31,11 @@ def validate_sales_invoice_items_for_mra(doc, method=None):
 
 	Validation is only enforced when CSF MU Settings is configured.
 	"""
-	public_key = frappe.db.get_single_value("CSF MU Settings", "public_key_certificate")
-	if not public_key:
+	settings_detail = get_company_mra_settings(doc.company, throw=False)
+	if not settings_detail or not settings_detail.public_key_certificate:
 		return
-	allow_prf_trn = cint(
-		frappe.db.get_single_value("CSF MU Settings", "enable_prf_trn") or 0
-	)
+
+	allow_prf_trn = cint(settings_detail.enable_prf_trn or 0)
 	if doc.get("is_return"):
 		doc.mra_invoice_type_desc = "CRN"
 	elif doc.get("is_debit_note"):

@@ -3,14 +3,7 @@
 
 frappe.ui.form.on("Sales Invoice", {
 	refresh(frm) {
-		frappe.call({
-			method: "csf_mu.csf_mu.utils.mra_invoice.get_prf_trn_setting",
-			callback: (r) => {
-				frm._allow_prf_trn = !!(r && r.message);
-				frm.toggle_display("mra_invoice_type_desc", frm._allow_prf_trn);
-				frm.trigger("set_mra_invoice_type");
-			},
-		});
+		frm.trigger("load_prf_trn_setting");
 
 		const status = (frm.doc.mra_status || "").toUpperCase();
 		if (!["ERROR", "ERRORS"].includes(status)) {
@@ -33,6 +26,26 @@ frappe.ui.form.on("Sales Invoice", {
 	},
 	is_debit_note(frm) {
 		frm.trigger("set_mra_invoice_type");
+	},
+	company(frm) {
+		frm.trigger("load_prf_trn_setting");
+	},
+	load_prf_trn_setting(frm) {
+		if (!frm.doc.company) {
+			frm._allow_prf_trn = false;
+			frm.toggle_display("mra_invoice_type_desc", false);
+			frm.trigger("set_mra_invoice_type");
+			return;
+		}
+		frappe.call({
+			method: "csf_mu.csf_mu.utils.mra_invoice.get_prf_trn_setting",
+			args: { company: frm.doc.company },
+			callback: (r) => {
+				frm._allow_prf_trn = !!(r && r.message);
+				frm.toggle_display("mra_invoice_type_desc", frm._allow_prf_trn);
+				frm.trigger("set_mra_invoice_type");
+			},
+		});
 	},
 	set_mra_invoice_type(frm) {
 		const is_return = !!frm.doc.is_return;

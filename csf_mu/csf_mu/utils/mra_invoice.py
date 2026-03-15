@@ -5,6 +5,10 @@ import frappe
 
 from csf_mu.csf_mu.utils.mra_api import sign_payload, transmit_invoice
 from csf_mu.csf_mu.utils.mra_payload import build_mra_invoice_payload
+from csf_mu.csf_mu.utils.mra_settings import (
+	get_company_mra_settings,
+	get_mra_settings,
+)
 
 
 def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
@@ -41,6 +45,20 @@ def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
 
 
 def _send_invoice_to_mra(doc, allow_existing_log=False):
+	settings = get_mra_settings()
+	settings_detail = get_company_mra_settings(doc.company, throw=False)
+	if not settings_detail or not settings_detail.public_key_certificate:
+		log = _reset_or_create_log(doc, "[]", allow_existing_log=allow_existing_log)
+		if not log:
+			return
+		log.status = "ERRORS"
+		log.error_summary = (
+			f"CSF MU Settings Detail with Public Key Certificate is required for company {doc.company}."
+		)
+		log.save(ignore_permissions=True)
+		doc.db_set("mra_status", "ERRORS", update_modified=False)
+		return
+
 	payload_list = build_mra_invoice_payload(doc)
 	payload_json = json.dumps(payload_list)
 
@@ -48,17 +66,15 @@ def _send_invoice_to_mra(doc, allow_existing_log=False):
 	if not log:
 		return
 
-	settings = frappe.get_single("CSF MU Settings")
-	if not settings.public_key_certificate:
-		log.status = "ERRORS"
-		log.error_summary = "Public Key Certificate is required in CSF MU Settings."
-		log.save(ignore_permissions=True)
-		doc.db_set("mra_status", "ERRORS", update_modified=False)
-		return
-
 	try:
-		signed_hash = sign_payload(payload_json, settings)
-		request_payload, response = transmit_invoice(payload_json, signed_hash)
+		signed_hash = sign_payload(payload_json, settings_detail)
+		request_payload, response = transmit_invoice(
+			payload_json,
+			signed_hash,
+			company=doc.company,
+			settings=settings,
+			settings_detail=settings_detail,
+		)
 	except Exception as exc:
 		log.status = "ERRORS"
 		log.error_summary = str(exc)
@@ -125,8 +141,11 @@ def resend_invoice_to_mra(sales_invoice):
 
 
 @frappe.whitelist()
-def get_prf_trn_setting():
-	return frappe.db.get_single_value("CSF MU Settings", "enable_prf_trn") or 0
+def get_prf_trn_setting(company=None):
+	if not company:
+		return 0
+	settings_detail = get_company_mra_settings(company, throw=False)
+	return (settings_detail.enable_prf_trn if settings_detail else 0) or 0
 
 
 @frappe.whitelist()
@@ -140,14 +159,9 @@ def batch_transmit_invoices(sales_invoices):
 	if not sales_invoices:
 		frappe.throw("Select one or more Sales Invoices for batch transmit.")
 
-	settings = frappe.get_single("CSF MU Settings")
-	max_per_request = settings.max_invoices_per_request or 500
-	if len(sales_invoices) > max_per_request:
-		frappe.throw(f"Maximum invoices per request is {max_per_request}.")
-
-	eligible = []
+	eligible_docs = []
 	skipped = []
-	total_items = 0
+	companies = set()
 	for name in sales_invoices:
 		doc = frappe.get_doc("Sales Invoice", name)
 		if doc.docstatus != 1:
@@ -156,15 +170,22 @@ def batch_transmit_invoices(sales_invoices):
 		if status == "SUCCESS":
 			skipped.append(name)
 			continue
-		eligible.append(name)
-		total_items += len(doc.items or [])
+		eligible_docs.append(doc)
+		companies.add(doc.company)
 
-	if not eligible:
+	if not eligible_docs:
 		frappe.throw("All selected invoices are already SUCCESS.")
 
-	if len(eligible) > max_per_request:
+	if len(companies) > 1:
+		frappe.throw("Batch transmit currently supports one company per request.")
+
+	company = eligible_docs[0].company
+	settings_detail = get_company_mra_settings(company)
+	max_per_request = settings_detail.max_invoices_per_request or 500
+	if len(eligible_docs) > max_per_request:
 		frappe.throw(f"Maximum invoices per request is {max_per_request}.")
 
+	total_items = sum(len(doc.items or []) for doc in eligible_docs)
 	if total_items > 5000:
 		frappe.throw("Maximum total items per request is 5000.")
 
@@ -172,21 +193,45 @@ def batch_transmit_invoices(sales_invoices):
 	frappe.enqueue(
 		"csf_mu.csf_mu.utils.mra_invoice.batch_transmit_job",
 		queue="long",
-		sales_invoices=eligible,
+		sales_invoices=[doc.name for doc in eligible_docs],
+		company=company,
 		task_id=task_id,
 	)
 	frappe.local.response["task_id"] = task_id
-	return {"queued": len(eligible), "skipped": skipped}
+	return {"queued": len(eligible_docs), "skipped": skipped}
 
 
-def batch_transmit_job(sales_invoices, task_id=None):
+def batch_transmit_job(sales_invoices, company=None, task_id=None):
 	title = "MRA Batch Transmit"
 	frappe.publish_progress(0, title=title, description="Preparing invoices...", task_id=task_id)
 
 	docs = []
 	for name in sales_invoices:
 		doc = frappe.get_doc("Sales Invoice", name)
+		if company and doc.company != company:
+			continue
 		docs.append(doc)
+
+	if not docs:
+		frappe.publish_progress(100, title=title, description="No invoices to process.", task_id=task_id)
+		return
+
+	company = company or docs[0].company
+	settings = get_mra_settings()
+	settings_detail = get_company_mra_settings(company, throw=False)
+	if not settings_detail or not settings_detail.public_key_certificate:
+		for doc in docs:
+			log = _reset_or_create_log(doc, "[]", allow_existing_log=True)
+			if not log:
+				continue
+			log.status = "ERRORS"
+			log.error_summary = (
+				f"CSF MU Settings Detail with Public Key Certificate is required for company {company}."
+			)
+			log.save(ignore_permissions=True)
+			doc.db_set("mra_status", "ERRORS", update_modified=False)
+		frappe.publish_progress(100, title=title, description="Failed.", task_id=task_id)
+		return
 
 	payload_list = []
 	for idx, doc in enumerate(docs, start=1):
@@ -207,22 +252,15 @@ def batch_transmit_job(sales_invoices, task_id=None):
 		if log:
 			logs[doc.name] = log
 
-	settings = frappe.get_single("CSF MU Settings")
-	if not settings.public_key_certificate:
-		for doc in docs:
-			log = logs.get(doc.name)
-			if not log:
-				continue
-			log.status = "ERRORS"
-			log.error_summary = "Public Key Certificate is required in CSF MU Settings."
-			log.save(ignore_permissions=True)
-			doc.db_set("mra_status", "ERRORS", update_modified=False)
-		frappe.publish_progress(100, title=title, description="Failed.", task_id=task_id)
-		return
-
 	try:
-		signed_hash = sign_payload(payload_json, settings)
-		request_payload, response = transmit_invoice(payload_json, signed_hash)
+		signed_hash = sign_payload(payload_json, settings_detail)
+		request_payload, response = transmit_invoice(
+			payload_json,
+			signed_hash,
+			company=company,
+			settings=settings,
+			settings_detail=settings_detail,
+		)
 	except Exception as exc:
 		for doc in docs:
 			log = logs.get(doc.name)
