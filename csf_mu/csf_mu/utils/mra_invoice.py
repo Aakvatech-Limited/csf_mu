@@ -2,6 +2,7 @@ import json
 from uuid import uuid4
 
 import frappe
+from frappe.utils import cint
 
 from csf_mu.csf_mu.utils.mra_api import sign_payload, transmit_invoice
 from csf_mu.csf_mu.utils.mra_payload import build_mra_invoice_payload
@@ -125,6 +126,11 @@ def _send_invoice_to_mra(doc, allow_existing_log=False):
 
 
 def create_invoice_log(doc, method=None):
+	settings_detail = get_company_mra_settings(doc.company, throw=False)
+	if not settings_detail:
+		return
+	if not cint(settings_detail.auto_send_to_mra_on_submit):
+		return
 	_send_invoice_to_mra(doc, allow_existing_log=False)
 
 
