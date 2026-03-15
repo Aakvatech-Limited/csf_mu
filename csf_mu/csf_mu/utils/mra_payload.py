@@ -16,6 +16,13 @@ def _format_mra_datetime(dt):
 	return get_datetime(dt).strftime(MRA_DATETIME_FORMAT)
 
 
+def _format_tax_code_for_payload(tax_code):
+	value = (tax_code or "").strip().upper()
+	if value.startswith("TC") and len(value) >= 4:
+		return value[2:]
+	return value
+
+
 def _get_item_tax_rate(item_tax_template):
 	if not item_tax_template:
 		return 0
@@ -175,7 +182,7 @@ def build_mra_invoice_payload(doc):
 
 		item = {
 			"itemNo": str(row.idx),
-			"taxCode": mapping.get("tax_code"),
+			"taxCode": _format_tax_code_for_payload(mapping.get("tax_code")),
 			"nature": mapping.get("nature"),
 			"itemDesc": row.item_name or row.description or row.item_code,
 			"productCodeMra": "",
