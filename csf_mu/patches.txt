@@ -4,3 +4,4 @@
 
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
+csf_mu.patches.delete_mra_invoice_log_field
