@@ -189,16 +189,7 @@ def execute():
 				"label": "MRA QR Code",
 				"no_copy": 1,
 				"read_only": 1,
-			},
-			{
-				"fieldname": "mra_invoice_log",
-				"fieldtype": "Link",
-				"insert_after": "mra_qr_code",
-				"label": "MRA Einvoice Log",
-				"no_copy": 1,
-				"options": "MRA Einvoice Log",
-				"read_only": 1,
-			},
+			}
 		]
 	}
 

@@ -38,7 +38,6 @@ def _reset_or_create_log(doc, payload_json, allow_existing_log=True):
 		log.invoice_identifier = doc.name
 		log.request_json = payload_json
 		log.insert(ignore_permissions=True)
-		doc.db_set("mra_invoice_log", log.name, update_modified=False)
 
 	doc.db_set("mra_status", "PENDING", update_modified=False)
 	return log
