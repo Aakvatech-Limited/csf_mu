@@ -1,0 +1,25 @@
+{
+ "cards": [
+  {"card": "Total MRA Invoices"},
+  {"card": "MRA Success"},
+  {"card": "MRA Errors"},
+  {"card": "MRA Pending"}
+ ],
+ "charts": [
+  {"chart": "MRA Transmission Trend", "width": "Full"},
+  {"chart": "MRA Invoice Status", "width": "Half"},
+  {"chart": "MRA Invoices by Company", "width": "Half"}
+ ],
+ "creation": "2026-10-01 22:30:00.000000",
+ "dashboard_name": "MRA Integration",
+ "docstatus": 0,
+ "doctype": "Dashboard",
+ "idx": 0,
+ "is_default": 0,
+ "is_standard": 1,
+ "modified": "2026-10-01 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "MRA Integration",
+ "owner": "Administrator"
+}
