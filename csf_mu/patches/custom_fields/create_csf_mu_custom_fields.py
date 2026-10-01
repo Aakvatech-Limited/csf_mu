@@ -114,6 +114,41 @@ def execute():
 				"label": "NIC / NCID",
 			},
 		],
+		"Item Tax Template": [
+			{
+				"fieldname": "vat_return_type",
+				"fieldtype": "Link",
+				"insert_after": "title",
+				"label": "VAT Return Type",
+				"options": "VAT Return Type",
+			},
+		],
+		"Sales Invoice Item": [
+			{
+				"allow_on_submit": 1,
+				"fetch_from": "item_tax_template.vat_return_type",
+				"fetch_if_empty": 1,
+				"fieldname": "vat_return_type",
+				"fieldtype": "Link",
+				"in_list_view": 1,
+				"insert_after": "item_tax_template",
+				"label": "VAT Return Type",
+				"options": "VAT Return Type",
+			},
+		],
+		"Purchase Invoice Item": [
+			{
+				"allow_on_submit": 1,
+				"fetch_from": "item_tax_template.vat_return_type",
+				"fetch_if_empty": 1,
+				"fieldname": "vat_return_type",
+				"fieldtype": "Link",
+				"in_list_view": 1,
+				"insert_after": "item_tax_template",
+				"label": "VAT Return Type",
+				"options": "VAT Return Type",
+			},
+		],
 		"Sales Invoice": [
 			{
 				"fieldname": "mra_tab",
@@ -194,3 +229,8 @@ def execute():
 	}
 
 	create_custom_fields(fields, ignore_validate=True)
+
+	from csf_mu.csf_mu.utils.vat_return import backfill_vat_return_types, ensure_vat_return_types
+
+	ensure_vat_return_types()
+	backfill_vat_return_types()
