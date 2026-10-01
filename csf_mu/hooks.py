@@ -140,8 +140,12 @@ doctype_list_js = {"Sales Invoice": "csf_mu/sales_invoice_list.js"}
 doc_events = {
 	"Sales Invoice": {
 		"validate": "csf_mu.csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra",
+		"before_submit": "csf_mu.csf_mu.utils.vat_return.set_sales_invoice_vat_return_types",
 		"on_submit": "csf_mu.csf_mu.utils.mra_invoice.create_invoice_log",
-	}
+	},
+	"Purchase Invoice": {
+		"before_submit": "csf_mu.csf_mu.utils.vat_return.set_purchase_invoice_vat_return_types",
+	},
 }
 
 after_migrate = "csf_mu.patches.custom_fields.create_csf_mu_custom_fields.execute"
