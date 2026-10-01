@@ -1,8 +1,17 @@
 {
  "charts": [
-  {"chart_name": "MRA Invoice Volume Trend", "label": "MRA Invoice Volume Trend"},
-  {"chart_name": "MRA Invoice Status", "label": "MRA Invoice Status"},
-  {"chart_name": "MRA Invoices by Company", "label": "MRA Invoices by Company"}
+  {
+   "chart_name": "MRA Invoice Volume Trend",
+   "label": "MRA Invoice Volume Trend"
+  },
+  {
+   "chart_name": "MRA Invoice Status",
+   "label": "MRA Invoice Status"
+  },
+  {
+   "chart_name": "MRA Invoices by Company",
+   "label": "MRA Invoices by Company"
+  }
  ],
  "content": "[{\"id\":\"mra-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>MRA Integration Monitoring</b></span>\",\"col\":12}},{\"id\":\"mra-dashboard\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Integration Dashboard\",\"col\":3}},{\"id\":\"mra-report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Integration Monitor\",\"col\":3}},{\"id\":\"mra-log\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Einvoice Log\",\"col\":3}},{\"id\":\"mra-settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CSF MU Settings\",\"col\":3}},{\"id\":\"mra-spacer-1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-nc-total\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total MRA Invoices\",\"col\":3}},{\"id\":\"mra-nc-success\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Success\",\"col\":3}},{\"id\":\"mra-nc-errors\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Errors\",\"col\":3}},{\"id\":\"mra-nc-pending\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Pending\",\"col\":3}},{\"id\":\"mra-spacer-2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-chart-trend\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoice Volume Trend\",\"col\":12}},{\"id\":\"mra-chart-status\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoice Status\",\"col\":6}},{\"id\":\"mra-chart-company\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoices by Company\",\"col\":6}},{\"id\":\"mra-spacer-3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-links-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>MRA Setup &amp; Transactions</b></span>\",\"col\":12}},{\"id\":\"mra-card-setup\",\"type\":\"card\",\"data\":{\"card_name\":\"MRA Setup\",\"col\":6}},{\"id\":\"mra-card-transactions\",\"type\":\"card\",\"data\":{\"card_name\":\"MRA Transactions & Reports\",\"col\":6}}]",
  "creation": "2026-10-01 22:40:00.000000",
@@ -16,26 +25,154 @@
  "is_hidden": 0,
  "label": "MRA Integration",
  "links": [
-  {"hidden": 0, "is_query_report": 0, "label": "MRA Setup", "link_count": 0, "onboard": 0, "type": "Card Break"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "CSF MU Settings", "link_count": 0, "link_to": "CSF MU Settings", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "MRA Tax Code Map", "link_count": 0, "link_to": "MRA Tax Code Map", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Company", "link_count": 0, "link_to": "Company", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Customer", "link_count": 0, "link_to": "Customer", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Item Tax Template", "link_count": 0, "link_to": "Item Tax Template", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"hidden": 0, "is_query_report": 0, "label": "MRA Transactions & Reports", "link_count": 0, "onboard": 0, "type": "Card Break"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Sales Invoice", "link_count": 0, "link_to": "Sales Invoice", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "MRA Einvoice Log", "link_count": 0, "link_to": "MRA Einvoice Log", "link_type": "DocType", "onboard": 0, "type": "Link"},
-  {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "MRA Integration Monitor", "link_count": 0, "link_to": "MRA Integration Monitor", "link_type": "Report", "onboard": 0, "type": "Link"}
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "MRA Setup",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "CSF MU Settings",
+   "link_count": 0,
+   "link_to": "CSF MU Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "MRA Tax Code Map",
+   "link_count": 0,
+   "link_to": "MRA Tax Code Map",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Company",
+   "link_count": 0,
+   "link_to": "Company",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Customer",
+   "link_count": 0,
+   "link_to": "Customer",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Item Tax Template",
+   "link_count": 0,
+   "link_to": "Item Tax Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Item",
+   "link_count": 0,
+   "link_to": "Item",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Taxes and Charges Template",
+   "link_count": 0,
+   "link_to": "Sales Taxes and Charges Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "MRA Transactions & Reports",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Invoice",
+   "link_count": 0,
+   "link_to": "Sales Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "MRA Einvoice Log",
+   "link_count": 0,
+   "link_to": "MRA Einvoice Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "MRA Integration Monitor",
+   "link_count": 0,
+   "link_to": "MRA Integration Monitor",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
  ],
- "modified": "2026-10-01 22:30:00.000000",
+ "modified": "2026-10-01 22:45:00.000000",
  "modified_by": "Administrator",
  "module": "CSF MU",
  "name": "MRA Integration",
  "number_cards": [
-  {"label": "Total MRA Invoices", "number_card_name": "Total MRA Invoices"},
-  {"label": "MRA Success", "number_card_name": "MRA Success"},
-  {"label": "MRA Errors", "number_card_name": "MRA Errors"},
-  {"label": "MRA Pending", "number_card_name": "MRA Pending"}
+  {
+   "label": "Total MRA Invoices",
+   "number_card_name": "Total MRA Invoices"
+  },
+  {
+   "label": "MRA Success",
+   "number_card_name": "MRA Success"
+  },
+  {
+   "label": "MRA Errors",
+   "number_card_name": "MRA Errors"
+  },
+  {
+   "label": "MRA Pending",
+   "number_card_name": "MRA Pending"
+  }
  ],
  "owner": "Administrator",
  "parent_page": "",
@@ -43,12 +180,33 @@
  "quick_lists": [],
  "restrict_to_domain": "",
  "roles": [],
- "sequence_id": 1.0,
+ "sequence_id": 1,
  "shortcuts": [
-  {"color": "Blue", "doc_view": "List", "label": "MRA Integration Dashboard", "link_to": "MRA Integration", "type": "Dashboard"},
-  {"color": "Green", "label": "MRA Integration Monitor", "link_to": "MRA Integration Monitor", "type": "Report"},
-  {"color": "Orange", "label": "MRA Einvoice Log", "link_to": "MRA Einvoice Log", "type": "DocType"},
-  {"color": "Grey", "label": "CSF MU Settings", "link_to": "CSF MU Settings", "type": "DocType"}
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "MRA Integration Dashboard",
+   "link_to": "MRA Integration",
+   "type": "Dashboard"
+  },
+  {
+   "color": "Green",
+   "label": "MRA Integration Monitor",
+   "link_to": "MRA Integration Monitor",
+   "type": "Report"
+  },
+  {
+   "color": "Orange",
+   "label": "MRA Einvoice Log",
+   "link_to": "MRA Einvoice Log",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "label": "CSF MU Settings",
+   "link_to": "CSF MU Settings",
+   "type": "DocType"
+  }
  ],
  "title": "MRA Integration"
 }
