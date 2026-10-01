@@ -36,9 +36,16 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           label_pattern: "^backport-to-(.+)$"
           merge_commits: "skip"
+          experimental: |
+            {
+              "conflict_resolution": "draft_commit_conflicts"
+            }
           pull_title: "[Backport ${target_branch}] ${pull_title}"
           pull_description: |
             Backport of #${pull_number} to `${target_branch}`.
+
+            If conflicts are present, resolve them directly in this draft backport PR and
+            mark it ready for review once the conflict resolution is complete.
 
             ---
 
@@ -48,7 +55,7 @@ jobs:
           copy_labels_pattern: "^(?!backport-to-)"
           auto_merge_enabled: ${{ contains(join(github.event.pull_request.labels.*.name, ','), 'backport-auto-merge') }}
 
-      - name: Report backport status
+      - name: Report backport failure
         if: failure()
         uses: actions/github-script@v7
         with:
@@ -61,15 +68,9 @@ jobs:
               repo,
               issue_number: pullNumber,
               body: [
-                "⚠️ **Backport failed!**",
+                "⚠️ **Backport automation failed.**",
                 "",
-                "Automatic backport could not be completed. This is usually caused by cherry-pick conflicts or a missing target branch.",
-                "",
-                "Manual backport example:",
-                "",
-                "```bash",
-                "git checkout <target-branch>",
-                `git cherry-pick -x ${context.payload.pull_request.merge_commit_sha}`,
-                "```",
-              ].join("\\n"),
+                "Conflict handling is configured to create a draft backport PR when a cherry-pick conflict occurs.",
+                "If no draft PR was created, inspect this workflow run for an infrastructure, permissions, or target-branch error.",
+              ].join("\n"),
             });
