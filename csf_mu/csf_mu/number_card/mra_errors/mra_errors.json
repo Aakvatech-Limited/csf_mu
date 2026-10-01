@@ -1,0 +1,21 @@
+{
+ "creation": "2026-10-01 22:30:00.000000",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "document_type": "Sales Invoice",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[[\"Sales Invoice\",\"docstatus\",\"=\",1,false],[\"Sales Invoice\",\"mra_status\",\"in\",[\"ERROR\",\"ERRORS\",\"HAS_ERRORS\"],false]]",
+ "function": "Count",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "MRA Errors",
+ "modified": "2026-10-01 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "MRA Errors",
+ "owner": "Administrator",
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Daily",
+ "type": "Document Type"
+}
