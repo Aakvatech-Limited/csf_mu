@@ -230,6 +230,7 @@ def execute():
 
 	create_custom_fields(fields, ignore_validate=True)
 
-	from csf_mu.csf_mu.utils.vat_return import ensure_vat_return_types
+	from csf_mu.csf_mu.utils.vat_return import backfill_vat_return_types, ensure_vat_return_types
 
 	ensure_vat_return_types()
+	backfill_vat_return_types()
