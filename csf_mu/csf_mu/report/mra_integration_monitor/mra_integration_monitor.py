@@ -11,17 +11,62 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		{"label": "Sales Invoice", "fieldname": "sales_invoice", "fieldtype": "Link", "options": "Sales Invoice", "width": 170},
+		{
+			"label": "Sales Invoice",
+			"fieldname": "sales_invoice",
+			"fieldtype": "Link",
+			"options": "Sales Invoice",
+			"width": 170,
+		},
 		{"label": "Posting Date", "fieldname": "posting_date", "fieldtype": "Date", "width": 105},
-		{"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 170},
-		{"label": "Customer", "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 170},
-		{"label": "Invoice Type", "fieldname": "mra_invoice_type_desc", "fieldtype": "Data", "width": 95},
+		{
+			"label": "Company",
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"options": "Company",
+			"width": 170,
+		},
+		{
+			"label": "Customer",
+			"fieldname": "customer",
+			"fieldtype": "Link",
+			"options": "Customer",
+			"width": 170,
+		},
+		{
+			"label": "Invoice Type",
+			"fieldname": "mra_invoice_type_desc",
+			"fieldtype": "Data",
+			"width": 95,
+		},
 		{"label": "MRA Status", "fieldname": "mra_status", "fieldtype": "Data", "width": 105},
-		{"label": "Grand Total", "fieldname": "grand_total", "fieldtype": "Currency", "options": "currency", "width": 120},
-		{"label": "Currency", "fieldname": "currency", "fieldtype": "Link", "options": "Currency", "width": 80},
+		{
+			"label": "Grand Total",
+			"fieldname": "grand_total",
+			"fieldtype": "Currency",
+			"options": "currency",
+			"width": 120,
+		},
+		{
+			"label": "Currency",
+			"fieldname": "currency",
+			"fieldtype": "Link",
+			"options": "Currency",
+			"width": 80,
+		},
 		{"label": "IRN", "fieldname": "mra_uuid", "fieldtype": "Data", "width": 180},
-		{"label": "Request Datetime", "fieldname": "request_datetime", "fieldtype": "Data", "width": 160},
-		{"label": "Response Datetime", "fieldname": "response_datetime", "fieldtype": "Data", "width": 160},
+		{
+			"label": "Request Datetime",
+			"fieldname": "request_datetime",
+			"fieldtype": "Data",
+			"width": 160,
+		},
+		{
+			"label": "Response Datetime",
+			"fieldname": "response_datetime",
+			"fieldtype": "Data",
+			"width": 160,
+		},
 		{"label": "Error Summary", "fieldname": "error_summary", "fieldtype": "Data", "width": 320},
 	]
 
@@ -124,5 +169,10 @@ def get_report_summary(data):
 		{"value": success, "indicator": "Green", "label": "Success", "datatype": "Int"},
 		{"value": errors, "indicator": "Red", "label": "Errors", "datatype": "Int"},
 		{"value": pending, "indicator": "Orange", "label": "Pending", "datatype": "Int"},
-		{"value": success_rate, "indicator": "Green", "label": "Success Rate", "datatype": "Percent"},
+		{
+			"value": success_rate,
+			"indicator": "Green",
+			"label": "Success Rate",
+			"datatype": "Percent",
+		},
 	]
