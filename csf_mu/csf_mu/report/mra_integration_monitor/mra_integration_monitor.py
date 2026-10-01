@@ -22,54 +22,84 @@ def get_columns():
 		{"label": "IRN", "fieldname": "mra_uuid", "fieldtype": "Data", "width": 180},
 		{"label": "Request Datetime", "fieldname": "request_datetime", "fieldtype": "Data", "width": 160},
 		{"label": "Response Datetime", "fieldname": "response_datetime", "fieldtype": "Data", "width": 160},
-		{"label": "Error Summary", "fieldname": "error_summary", "fieldtype": "Small Text", "width": 320},
+		{"label": "Error Summary", "fieldname": "error_summary", "fieldtype": "Data", "width": 320},
 	]
 
 
 def get_data(filters):
-	conditions = ["si.docstatus = 1", "COALESCE(si.mra_status, '') != ''"]
-	values = {}
+	invoice_filters = {
+		"docstatus": 1,
+		"mra_status": ["!=", ""],
+	}
 
 	if filters.get("company"):
-		conditions.append("si.company = %(company)s")
-		values["company"] = filters.company
+		invoice_filters["company"] = filters.company
 
-	if filters.get("from_date"):
-		conditions.append("si.posting_date >= %(from_date)s")
-		values["from_date"] = filters.from_date
-
-	if filters.get("to_date"):
-		conditions.append("si.posting_date <= %(to_date)s")
-		values["to_date"] = filters.to_date
+	if filters.get("from_date") and filters.get("to_date"):
+		invoice_filters["posting_date"] = ["between", [filters.from_date, filters.to_date]]
+	elif filters.get("from_date"):
+		invoice_filters["posting_date"] = [">=", filters.from_date]
+	elif filters.get("to_date"):
+		invoice_filters["posting_date"] = ["<=", filters.to_date]
 
 	if filters.get("status"):
-		conditions.append("si.mra_status = %(status)s")
-		values["status"] = filters.status
+		invoice_filters["mra_status"] = filters.status
 
-	return frappe.db.sql(
-		"""
-		SELECT
-			si.name AS sales_invoice,
-			si.posting_date,
-			si.company,
-			si.customer,
-			si.mra_invoice_type_desc,
-			si.mra_status,
-			si.grand_total,
-			si.currency,
-			COALESCE(log.mra_uuid, si.mra_uuid) AS mra_uuid,
-			log.request_datetime,
-			log.response_datetime,
-			log.error_summary
-		FROM `tabSales Invoice` si
-		LEFT JOIN `tabMRA Einvoice Log` log
-			ON log.sales_invoice = si.name
-		WHERE {conditions}
-		ORDER BY si.posting_date DESC, si.name DESC
-		""".format(conditions=" AND ".join(conditions)),
-		values,
-		as_dict=True,
+	invoices = frappe.get_list(
+		"Sales Invoice",
+		filters=invoice_filters,
+		fields=[
+			"name",
+			"posting_date",
+			"company",
+			"customer",
+			"mra_invoice_type_desc",
+			"mra_status",
+			"grand_total",
+			"currency",
+			"mra_uuid",
+		],
+		order_by="posting_date desc, name desc",
 	)
+
+	if not invoices:
+		return []
+
+	invoice_names = [row.name for row in invoices]
+	logs = frappe.get_all(
+		"MRA Einvoice Log",
+		filters={"sales_invoice": ["in", invoice_names]},
+		fields=[
+			"sales_invoice",
+			"mra_uuid",
+			"request_datetime",
+			"response_datetime",
+			"error_summary",
+		],
+	)
+	log_by_invoice = {row.sales_invoice: row for row in logs}
+
+	data = []
+	for invoice in invoices:
+		log = log_by_invoice.get(invoice.name) or {}
+		data.append(
+			{
+				"sales_invoice": invoice.name,
+				"posting_date": invoice.posting_date,
+				"company": invoice.company,
+				"customer": invoice.customer,
+				"mra_invoice_type_desc": invoice.mra_invoice_type_desc,
+				"mra_status": invoice.mra_status,
+				"grand_total": invoice.grand_total,
+				"currency": invoice.currency,
+				"mra_uuid": log.get("mra_uuid") or invoice.mra_uuid,
+				"request_datetime": log.get("request_datetime"),
+				"response_datetime": log.get("response_datetime"),
+				"error_summary": log.get("error_summary"),
+			}
+		)
+
+	return data
 
 
 def get_report_summary(data):
