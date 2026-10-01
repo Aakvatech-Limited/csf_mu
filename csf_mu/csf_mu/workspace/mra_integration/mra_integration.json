@@ -11,9 +11,17 @@
   {
    "chart_name": "MRA Invoices by Company",
    "label": "MRA Invoices by Company"
+  },
+  {
+   "chart_name": "VAT Output Value by Box",
+   "label": "VAT Output Value by Box"
+  },
+  {
+   "chart_name": "VAT Input Value by Box",
+   "label": "VAT Input Value by Box"
   }
  ],
- "content": "[{\"id\":\"mra-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>MRA Integration Monitoring</b></span>\",\"col\":12}},{\"id\":\"mra-dashboard\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Integration Dashboard\",\"col\":3}},{\"id\":\"mra-report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Integration Monitor\",\"col\":3}},{\"id\":\"mra-log\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Einvoice Log\",\"col\":3}},{\"id\":\"mra-settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CSF MU Settings\",\"col\":3}},{\"id\":\"mra-spacer-1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-nc-total\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total MRA Invoices\",\"col\":3}},{\"id\":\"mra-nc-success\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Success\",\"col\":3}},{\"id\":\"mra-nc-errors\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Errors\",\"col\":3}},{\"id\":\"mra-nc-pending\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Pending\",\"col\":3}},{\"id\":\"mra-spacer-2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-chart-trend\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoice Volume Trend\",\"col\":12}},{\"id\":\"mra-chart-status\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoice Status\",\"col\":6}},{\"id\":\"mra-chart-company\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoices by Company\",\"col\":6}},{\"id\":\"mra-spacer-3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-links-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>MRA Setup &amp; Transactions</b></span>\",\"col\":12}},{\"id\":\"mra-card-setup\",\"type\":\"card\",\"data\":{\"card_name\":\"MRA Setup\",\"col\":6}},{\"id\":\"mra-card-transactions\",\"type\":\"card\",\"data\":{\"card_name\":\"MRA Transactions & Reports\",\"col\":6}}]",
+ "content": "[{\"id\":\"mra-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>MRA Integration Monitoring</b></span>\",\"col\":12}},{\"id\":\"mra-dashboard\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Integration Dashboard\",\"col\":3}},{\"id\":\"mra-report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Integration Monitor\",\"col\":3}},{\"id\":\"mra-log\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MRA Einvoice Log\",\"col\":3}},{\"id\":\"mra-settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"CSF MU Settings\",\"col\":3}},{\"id\":\"mra-spacer-1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-nc-total\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total MRA Invoices\",\"col\":3}},{\"id\":\"mra-nc-success\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Success\",\"col\":3}},{\"id\":\"mra-nc-errors\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Errors\",\"col\":3}},{\"id\":\"mra-nc-pending\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"MRA Pending\",\"col\":3}},{\"id\":\"mra-spacer-2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-chart-trend\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoice Volume Trend\",\"col\":12}},{\"id\":\"mra-chart-status\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoice Status\",\"col\":6}},{\"id\":\"mra-chart-company\",\"type\":\"chart\",\"data\":{\"chart_name\":\"MRA Invoices by Company\",\"col\":6}},{\"id\":\"mra-spacer-3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"vat-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>VAT Return Controls</b></span>\",\"col\":12}},{\"id\":\"vat-dashboard\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return Dashboard\",\"col\":3}},{\"id\":\"vat-report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return\",\"col\":3}},{\"id\":\"vat-spacer-1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"vat-nc-sales-classified\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"VAT Classified Sales Items\",\"col\":3}},{\"id\":\"vat-nc-sales-unclassified\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"VAT Unclassified Sales Items\",\"col\":3}},{\"id\":\"vat-nc-purchase-classified\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"VAT Classified Purchase Items\",\"col\":3}},{\"id\":\"vat-nc-purchase-unclassified\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"VAT Unclassified Purchase Items\",\"col\":3}},{\"id\":\"vat-spacer-2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"vat-chart-output\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Output Value by Box\",\"col\":6}},{\"id\":\"vat-chart-input\",\"type\":\"chart\",\"data\":{\"chart_name\":\"VAT Input Value by Box\",\"col\":6}},{\"id\":\"vat-spacer-3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"mra-links-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>MRA Setup &amp; Transactions</b></span>\",\"col\":12}},{\"id\":\"mra-card-setup\",\"type\":\"card\",\"data\":{\"card_name\":\"MRA Setup\",\"col\":6}},{\"id\":\"mra-card-transactions\",\"type\":\"card\",\"data\":{\"card_name\":\"MRA Transactions & Reports\",\"col\":6}}]",
  "creation": "2026-10-01 22:40:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -51,6 +59,17 @@
    "label": "MRA Tax Code Map",
    "link_count": 0,
    "link_to": "MRA Tax Code Map",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "VAT Return Type",
+   "link_count": 0,
+   "link_to": "VAT Return Type",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -133,6 +152,17 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Purchase Invoice",
+   "link_count": 0,
+   "link_to": "Purchase Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "MRA Einvoice Log",
    "link_count": 0,
    "link_to": "MRA Einvoice Log",
@@ -150,9 +180,20 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "VAT Return",
+   "link_count": 0,
+   "link_to": "VAT Return",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-10-01 22:45:00.000000",
+ "modified": "2026-10-01 23:00:00.000000",
  "modified_by": "Administrator",
  "module": "CSF MU",
  "name": "MRA Integration",
@@ -172,6 +213,22 @@
   {
    "label": "MRA Pending",
    "number_card_name": "MRA Pending"
+  },
+  {
+   "label": "VAT Classified Sales Items",
+   "number_card_name": "VAT Classified Sales Items"
+  },
+  {
+   "label": "VAT Unclassified Sales Items",
+   "number_card_name": "VAT Unclassified Sales Items"
+  },
+  {
+   "label": "VAT Classified Purchase Items",
+   "number_card_name": "VAT Classified Purchase Items"
+  },
+  {
+   "label": "VAT Unclassified Purchase Items",
+   "number_card_name": "VAT Unclassified Purchase Items"
   }
  ],
  "owner": "Administrator",
@@ -188,6 +245,19 @@
    "label": "MRA Integration Dashboard",
    "link_to": "MRA Integration",
    "type": "Dashboard"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "VAT Return Dashboard",
+   "link_to": "VAT Return",
+   "type": "Dashboard"
+  },
+  {
+   "color": "Green",
+   "label": "VAT Return",
+   "link_to": "VAT Return",
+   "type": "Report"
   },
   {
    "color": "Green",
