@@ -6,11 +6,11 @@
   {"card": "MRA Pending"}
  ],
  "charts": [
-  {"chart": "MRA Transmission Trend", "width": "Full"},
+  {"chart": "MRA Invoice Volume Trend", "width": "Full"},
   {"chart": "MRA Invoice Status", "width": "Half"},
   {"chart": "MRA Invoices by Company", "width": "Half"}
  ],
- "creation": "2026-10-01 22:30:00.000000",
+ "creation": "2026-10-01 22:40:00.000000",
  "dashboard_name": "MRA Integration",
  "docstatus": 0,
  "doctype": "Dashboard",
