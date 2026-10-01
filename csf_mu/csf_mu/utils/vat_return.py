@@ -86,3 +86,55 @@ def set_purchase_invoice_vat_return_types(doc, method=None):
 		)
 		if capital_goods_type:
 			row.vat_return_type = capital_goods_type
+
+
+def backfill_vat_return_types():
+	_backfill_invoice_items("Sales Invoice", "Sales Invoice Item", False)
+	_backfill_invoice_items("Purchase Invoice", "Purchase Invoice Item", True)
+
+
+def _backfill_invoice_items(parent_doctype, child_doctype, apply_capital_goods):
+	Parent = frappe.qb.DocType(parent_doctype)
+	Child = frappe.qb.DocType(child_doctype)
+	rows = (
+		frappe.qb.from_(Child)
+		.join(Parent)
+		.on(Child.parent == Parent.name)
+		.select(
+			Child.name,
+			Child.item_code,
+			Child.item_tax_template,
+			Child.vat_return_type,
+		)
+		.where(Parent.docstatus == 1)
+		.run(as_dict=True)
+	)
+
+	for row in rows:
+		if row.vat_return_type or not row.item_tax_template:
+			continue
+
+		vat_return_type = _get_item_tax_template_vat_return_type(row.item_tax_template)
+		if not vat_return_type:
+			continue
+
+		if apply_capital_goods and row.item_code:
+			is_fixed_asset = cint(
+				frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0
+			)
+			if is_fixed_asset:
+				capital_goods_type = frappe.db.get_value(
+					"VAT Return Type",
+					vat_return_type,
+					"capital_goods_vat_return_type",
+				)
+				if capital_goods_type:
+					vat_return_type = capital_goods_type
+
+		frappe.db.set_value(
+			child_doctype,
+			row.name,
+			"vat_return_type",
+			vat_return_type,
+			update_modified=False,
+		)
