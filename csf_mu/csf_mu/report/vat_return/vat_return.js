@@ -1,6 +1,32 @@
 frappe.query_reports["VAT Return"] = {
 	onload(report) {
 		report.page.add_inner_button(
+			__("Create / Update VAT Return Filing"),
+			() => {
+				const filters = report.get_filter_values(true);
+				frappe.call({
+					method: "csf_mu.csf_mu.custom_api.create_vat_return_filing",
+					args: { filters: JSON.stringify(filters) },
+					freeze: true,
+					freeze_message: __("Preparing VAT Return Filing..."),
+					callback(r) {
+						if (r.exc || !r.message || !r.message.name) {
+							return;
+						}
+						if (r.message.submitted) {
+							frappe.show_alert({
+								message: __("This VAT period has already been filed."),
+								indicator: "blue",
+							});
+						}
+						frappe.set_route("Form", "VAT Return Filing", r.message.name);
+					},
+				});
+			},
+			__("Actions")
+		);
+
+		report.page.add_inner_button(
 			__("Backfill VAT Return Type"),
 			() => {
 				const company = report.get_filter_value("company");
@@ -59,7 +85,7 @@ frappe.query_reports["VAT Return"] = {
 		{fieldname:"proportion_allowable",label:__("Proportion Allowable (%)"),fieldtype:"Float",default:100,reqd:1},
 		{fieldname:"deferred_vat_on_importation",label:__("Box 2 - Deferred VAT on Importation"),fieldtype:"Currency"},
 		{fieldname:"penalty_on_excess_overclaimed",label:__("Box 4 - Penalty on Excess Overclaimed"),fieldtype:"Currency"},
-		{fieldname:"excess_vat_brought_forward",label:__("Box 12 - Excess VAT Brought Forward"),fieldtype:"Currency"},
+		{fieldname:"excess_vat_brought_forward",label:__("Box 12 - Excess VAT Brought Forward (Override)"),fieldtype:"Currency",description:__("Leave blank to carry forward Box 16 from the latest submitted VAT Return Filing.")},
 		{fieldname:"vat_adjustment",label:__("Box 13 - VAT Adjustment"),fieldtype:"Currency"},
 		{fieldname:"proportion_claimable",label:__("Proportion Claimable (%)"),fieldtype:"Float"},
 		{fieldname:"repayment_on_capital_goods",label:__("Box 15.1 - Repayment on Capital Goods"),fieldtype:"Currency"},
