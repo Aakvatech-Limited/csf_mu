@@ -83,7 +83,7 @@ doctype_list_js = {"Sales Invoice": "csf_mu/sales_invoice_list.js"}
 # ------------
 
 # before_install = "csf_mu.install.before_install"
-# after_install = "csf_mu.install.after_install"
+after_install = "csf_mu.patches.custom_fields.create_csf_mu_custom_fields.execute"
 
 # Uninstallation
 # ------------
