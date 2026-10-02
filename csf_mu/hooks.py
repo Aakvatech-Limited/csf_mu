@@ -144,6 +144,7 @@ doc_events = {
 		"on_submit": "csf_mu.csf_mu.utils.mra_invoice.create_invoice_log",
 	},
 	"Purchase Invoice": {
+		"validate": "csf_mu.csf_mu.utils.vat_return.set_purchase_invoice_vat_claim_dates",
 		"before_submit": "csf_mu.csf_mu.utils.vat_return.set_purchase_invoice_vat_return_types",
 	},
 }
