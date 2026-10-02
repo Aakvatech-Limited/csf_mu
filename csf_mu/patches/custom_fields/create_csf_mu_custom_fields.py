@@ -148,6 +148,15 @@ def execute():
 				"label": "VAT Return Type",
 				"options": "VAT Return Type",
 			},
+			{
+				"allow_on_submit": 1,
+				"fieldname": "vat_claim_date",
+				"fieldtype": "Date",
+				"in_list_view": 1,
+				"insert_after": "vat_return_type",
+				"label": "VAT Claim Date",
+				"description": "Taxable period date in which this purchase input VAT is claimed. Defaults to the Purchase Invoice posting date.",
+			},
 		],
 		"Sales Invoice": [
 			{
