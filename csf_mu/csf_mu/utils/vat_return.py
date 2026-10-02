@@ -66,32 +66,112 @@ def set_purchase_invoice_vat_return_types(doc, method=None):
 			row.vat_return_type = capital_goods_type
 
 
-def backfill_vat_return_types():
-	_backfill_invoice_items("Sales Invoice", "Sales Invoice Item", False)
-	_backfill_invoice_items("Purchase Invoice", "Purchase Invoice Item", True)
+def backfill_vat_return_types(company=None):
+	sales = _backfill_invoice_items(
+		"Sales Invoice",
+		"Sales Invoice Item",
+		False,
+		company=company,
+	)
+	purchases = _backfill_invoice_items(
+		"Purchase Invoice",
+		"Purchase Invoice Item",
+		True,
+		company=company,
+	)
+	return {
+		"sales": sales,
+		"purchases": purchases,
+		"updated": sales["updated"] + purchases["updated"],
+		"already_classified": sales["already_classified"]
+		+ purchases["already_classified"],
+		"missing_item_tax_template": sales["missing_item_tax_template"]
+		+ purchases["missing_item_tax_template"],
+		"unmapped_item_tax_template": sales["unmapped_item_tax_template"]
+		+ purchases["unmapped_item_tax_template"],
+		"capital_goods": purchases["capital_goods"],
+		"sales_invoices_updated": sales["invoices_updated"],
+		"purchase_invoices_updated": purchases["invoices_updated"],
+	}
 
 
-def _backfill_invoice_items(parent_doctype, child_doctype, apply_capital_goods):
+def _backfill_invoice_items(
+	parent_doctype,
+	child_doctype,
+	apply_capital_goods,
+	company=None,
+):
 	Parent = frappe.qb.DocType(parent_doctype)
 	Child = frappe.qb.DocType(child_doctype)
-	rows = (
+	query = (
 		frappe.qb.from_(Child)
 		.join(Parent)
 		.on(Child.parent == Parent.name)
-		.select(Child.name, Child.item_code, Child.item_tax_template, Child.vat_return_type)
+		.select(
+			Child.name,
+			Child.parent,
+			Child.item_code,
+			Child.item_tax_template,
+			Child.vat_return_type,
+		)
 		.where(Parent.docstatus == 1)
-		.run(as_dict=True)
 	)
+	if company:
+		query = query.where(Parent.company == company)
+
+	rows = query.run(as_dict=True)
+	stats = {
+		"scanned": len(rows),
+		"updated": 0,
+		"already_classified": 0,
+		"missing_item_tax_template": 0,
+		"unmapped_item_tax_template": 0,
+		"capital_goods": 0,
+		"invoices_updated": 0,
+	}
+	updated_invoices = set()
+
 	for row in rows:
-		if row.vat_return_type or not row.item_tax_template:
+		if row.vat_return_type:
+			stats["already_classified"] += 1
 			continue
-		vat_return_type = _get_item_tax_template_vat_return_type(row.item_tax_template)
+		if not row.item_tax_template:
+			stats["missing_item_tax_template"] += 1
+			continue
+
+		vat_return_type = _get_item_tax_template_vat_return_type(
+			row.item_tax_template
+		)
 		if not vat_return_type:
+			stats["unmapped_item_tax_template"] += 1
 			continue
+
 		if apply_capital_goods and row.item_code:
-			is_fixed_asset = cint(frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0)
+			is_fixed_asset = cint(
+				frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0
+			)
 			if is_fixed_asset:
-				capital_goods_type = frappe.db.get_value("VAT Return Type", vat_return_type, "capital_goods_vat_return_type")
+				capital_goods_type = frappe.db.get_value(
+					"VAT Return Type",
+					vat_return_type,
+					"capital_goods_vat_return_type",
+				)
 				if capital_goods_type:
 					vat_return_type = capital_goods_type
-		frappe.db.set_value(child_doctype, row.name, "vat_return_type", vat_return_type, update_modified=False)
+					stats["capital_goods"] += 1
+
+		# Update the submitted invoice child row directly. This deliberately
+		# bypasses Document.save(), so neither the child nor parent modified
+		# timestamp changes and no Version record is created.
+		frappe.db.set_value(
+			child_doctype,
+			row.name,
+			"vat_return_type",
+			vat_return_type,
+			update_modified=False,
+		)
+		stats["updated"] += 1
+		updated_invoices.add(row.parent)
+
+	stats["invoices_updated"] = len(updated_invoices)
+	return stats
