@@ -14,7 +14,7 @@ def execute(filters=None):
 	box={key:0.0 for key in OUTPUT_VALUE_BOXES+INPUT_VALUE_BOXES}
 	vat={"1.4":0.0,"6.1":0.0,"6.3":0.0,"6.4":0.0,"6.6":0.0,"7":0.0}
 	sales=get_invoice_items("Sales Invoice","Sales Invoice Item",company,from_date,to_date)
-	purchases=get_invoice_items("Purchase Invoice","Purchase Invoice Item",company,from_date,to_date)
+	purchases=get_invoice_items("Purchase Invoice","Purchase Invoice Item",company,from_date,to_date,True)
 	validate_classification(sales,"Sales Invoice")
 	validate_classification(purchases,"Purchase Invoice")
 	for row in sales:
@@ -51,9 +51,13 @@ def get_period(filters):
 		return start,end
 	frappe.throw("Unsupported Taxable Period.")
 
-def get_invoice_items(parent_doctype,child_doctype,company,from_date,to_date):
+def get_invoice_items(parent_doctype,child_doctype,company,from_date,to_date,use_vat_claim_date=False):
 	Parent=frappe.qb.DocType(parent_doctype); Child=frappe.qb.DocType(child_doctype)
-	query=(frappe.qb.from_(Child).join(Parent).on(Child.parent==Parent.name).select(Child.parent,Child.idx,Child.item_code,Child.base_net_amount,Child.vat_return_type).where(Parent.docstatus==1).where(Parent.company==company).where(Parent.posting_date>=from_date).where(Parent.posting_date<=to_date))
+	query=(frappe.qb.from_(Child).join(Parent).on(Child.parent==Parent.name).select(Child.parent,Child.idx,Child.item_code,Child.base_net_amount,Child.vat_return_type).where(Parent.docstatus==1).where(Parent.company==company))
+	if use_vat_claim_date:
+		query=query.where(Child.vat_claim_date>=from_date).where(Child.vat_claim_date<=to_date)
+	else:
+		query=query.where(Parent.posting_date>=from_date).where(Parent.posting_date<=to_date)
 	if frappe.get_meta(parent_doctype).has_field("is_opening"): query=query.where(Parent.is_opening!="Yes")
 	return query.run(as_dict=True)
 
@@ -71,22 +75,34 @@ def get_sales_vat(company,from_date,to_date):
 	return sum(flt(row.base_tax_amount_after_discount_amount) for row in rows)
 
 def allocate_purchase_vat(company,from_date,to_date,purchases):
-	invoice_box_net={}
+	invoice_names=[]
+	selected_net={}
 	for row in purchases:
+		if row.parent not in invoice_names: invoice_names.append(row.parent)
 		if row.vat_return_type not in INPUT_VAT_BOXES: continue
-		invoice_box_net.setdefault(row.parent,{}); invoice_box_net[row.parent].setdefault(row.vat_return_type,0.0); invoice_box_net[row.parent][row.vat_return_type]+=flt(row.base_net_amount)
+		selected_net.setdefault(row.parent,{})
+		selected_net[row.parent].setdefault(row.vat_return_type,0.0)
+		selected_net[row.parent][row.vat_return_type]+=flt(row.base_net_amount)
+	allocated={key:0.0 for key in INPUT_VAT_BOXES}
+	if not invoice_names: return allocated
+	Item=frappe.qb.DocType("Purchase Invoice Item")
+	all_items=(frappe.qb.from_(Item).select(Item.parent,Item.base_net_amount,Item.vat_return_type).where(Item.parent.isin(invoice_names)).run(as_dict=True))
+	invoice_total_net={}
+	for row in all_items:
+		if row.vat_return_type not in INPUT_VAT_BOXES: continue
+		invoice_total_net[row.parent]=invoice_total_net.get(row.parent,0.0)+flt(row.base_net_amount)
 	Invoice=frappe.qb.DocType("Purchase Invoice"); Taxes=frappe.qb.DocType("Purchase Taxes and Charges")
-	rows=(frappe.qb.from_(Taxes).join(Invoice).on(Taxes.parent==Invoice.name).select(Taxes.parent,Taxes.add_deduct_tax,Taxes.base_tax_amount_after_discount_amount).where(Taxes.parenttype=="Purchase Invoice").where(Invoice.docstatus==1).where(Invoice.company==company).where(Invoice.posting_date>=from_date).where(Invoice.posting_date<=to_date).where(Invoice.is_opening!="Yes").run(as_dict=True))
+	rows=(frappe.qb.from_(Taxes).join(Invoice).on(Taxes.parent==Invoice.name).select(Taxes.parent,Taxes.add_deduct_tax,Taxes.base_tax_amount_after_discount_amount).where(Taxes.parenttype=="Purchase Invoice").where(Invoice.docstatus==1).where(Invoice.company==company).where(Invoice.name.isin(invoice_names)).where(Invoice.is_opening!="Yes").run(as_dict=True))
 	invoice_vat={}
 	for row in rows:
 		amount=flt(row.base_tax_amount_after_discount_amount)
 		if row.add_deduct_tax=="Deduct": amount=-amount
 		invoice_vat[row.parent]=invoice_vat.get(row.parent,0.0)+amount
-	allocated={key:0.0 for key in INPUT_VAT_BOXES}
 	for name,total_vat in invoice_vat.items():
-		box_net=invoice_box_net.get(name) or {}; total_net=sum(box_net.values())
+		total_net=invoice_total_net.get(name) or 0.0
 		if not total_net: continue
-		for target,net in box_net.items(): allocated[target]+=total_vat*net/total_net
+		for target,net in (selected_net.get(name) or {}).items():
+			allocated[target]+=total_vat*net/total_net
 	return allocated
 
 def get_columns():
