@@ -1,0 +1,25 @@
+{
+ "actions": [],
+ "creation": "2026-10-02 10:55:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["box","description","value_amount","vat_amount","currency"],
+ "fields": [
+  {"fieldname":"box","fieldtype":"Data","in_list_view":1,"label":"Box","read_only":1},
+  {"fieldname":"description","fieldtype":"Data","in_list_view":1,"label":"Description","read_only":1},
+  {"fieldname":"value_amount","fieldtype":"Currency","in_list_view":1,"label":"Value","options":"currency","read_only":1},
+  {"fieldname":"vat_amount","fieldtype":"Currency","in_list_view":1,"label":"VAT","options":"currency","read_only":1},
+  {"fieldname":"currency","fieldtype":"Link","label":"Currency","options":"Currency","read_only":1}
+ ],
+ "istable": 1,
+ "modified": "2026-10-02 10:55:00.000000",
+ "modified_by": "Administrator",
+ "module": "CSF MU",
+ "name": "VAT Return Filing Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
