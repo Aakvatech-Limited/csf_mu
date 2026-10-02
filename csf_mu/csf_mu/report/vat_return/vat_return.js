@@ -30,9 +30,10 @@ frappe.query_reports["VAT Return"] = {
 									title: __("VAT Return Type Backfill Complete"),
 									indicator: result.updated ? "green" : "blue",
 									message: __(
-										"Updated item rows: {0}<br>Sales Invoices updated: {1}<br>Purchase Invoices updated: {2}<br>Already classified: {3}<br>Missing Item Tax Template: {4}<br>Item Tax Template without VAT Return Type: {5}<br>Purchase rows converted to capital goods: {6}",
+										"Updated item rows: {0}<br>VAT Claim Dates defaulted: {1}<br>Sales Invoices updated: {2}<br>Purchase Invoices updated: {3}<br>Already classified: {4}<br>Missing Item Tax Template: {5}<br>Item Tax Template without VAT Return Type: {6}<br>Purchase rows converted to capital goods: {7}",
 										[
 											result.updated,
+											result.claim_dates_updated,
 											result.sales_invoices_updated,
 											result.purchase_invoices_updated,
 											result.already_classified,
