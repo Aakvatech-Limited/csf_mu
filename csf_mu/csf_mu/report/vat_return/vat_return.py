@@ -68,7 +68,7 @@ def validate_classification(rows,parent_doctype):
 			if len(missing)>=20: break
 	if missing: frappe.throw(parent_doctype+" items are missing VAT Return Type: "+", ".join(missing)+". Update the invoice item classification before generating the VAT Return.")
 
-def get_excess_vat_brought_forward(company,from_date):
+def get_previous_vat_return_filing(company,from_date):
 	previous=frappe.get_all(
 		"VAT Return Filing",
 		filters={
@@ -80,8 +80,13 @@ def get_excess_vat_brought_forward(company,from_date):
 		order_by="to_date desc",
 		limit=1,
 	)
+	return previous[0] if previous else None
+
+
+def get_excess_vat_brought_forward(company,from_date):
+	previous=get_previous_vat_return_filing(company,from_date)
 	if not previous: return 0.0
-	return flt(previous[0].box_16_excess_carried_forward)
+	return flt(previous.box_16_excess_carried_forward)
 
 def get_sales_vat(company,from_date,to_date):
 	Invoice=frappe.qb.DocType("Sales Invoice"); Taxes=frappe.qb.DocType("Sales Taxes and Charges")
