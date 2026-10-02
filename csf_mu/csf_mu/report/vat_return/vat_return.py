@@ -28,7 +28,10 @@ def execute(filters=None):
 	b5v=sum(box[k] for k in OUTPUT_VALUE_BOXES); b5t=vat["1.4"]+b2+b4
 	b9v=sum(box[k] for k in INPUT_VALUE_BOXES); b9t=vat["6.1"]+vat["6.3"]+vat["6.4"]+vat["6.6"]
 	pa=flt(filters.get("proportion_allowable")); pc=flt(filters.get("proportion_claimable")); b10=b9t*pa/100.0
-	b11=b5t-b10; b12=flt(filters.get("excess_vat_brought_forward")); b13=flt(filters.get("vat_adjustment")); raw=b11-b12+b13
+	b11=b5t-b10
+	manual_b12=filters.get("excess_vat_brought_forward")
+	b12=flt(manual_b12) if manual_b12 not in (None,"") else get_excess_vat_brought_forward(company,from_date)
+	b13=flt(filters.get("vat_adjustment")); raw=b11-b12+b13
 	b151=flt(filters.get("repayment_on_capital_goods")); b152=flt(filters.get("repayment_on_other_goods")); b153=b151+b152
 	b17=flt(filters.get("penalty_late_submission")); b18=flt(filters.get("penalty_for_period"))
 	if raw>=0: b14=raw+b17+b18; b16=0.0
@@ -68,6 +71,21 @@ def validate_classification(rows,parent_doctype):
 			missing.append("row "+str(row.idx)+" of "+row.parent)
 			if len(missing)>=20: break
 	if missing: frappe.throw(parent_doctype+" items are missing VAT Return Type: "+", ".join(missing)+". Update the invoice item classification before generating the VAT Return.")
+
+def get_excess_vat_brought_forward(company,from_date):
+	previous=frappe.get_all(
+		"VAT Return Filing",
+		filters={
+			"company": company,
+			"docstatus": 1,
+			"to_date": ["<", from_date],
+		},
+		fields=["name","box_16_excess_carried_forward"],
+		order_by="to_date desc",
+		limit=1,
+	)
+	if not previous: return 0.0
+	return flt(previous[0].box_16_excess_carried_forward)
 
 def get_sales_vat(company,from_date,to_date):
 	Invoice=frappe.qb.DocType("Sales Invoice"); Taxes=frappe.qb.DocType("Sales Taxes and Charges")
