@@ -16,7 +16,11 @@ def backfill_vat_return_type(company):
 
 @frappe.whitelist()
 def create_vat_return_filing(filters):
-	from csf_mu.csf_mu.report.vat_return.vat_return import execute, get_period
+	from csf_mu.csf_mu.report.vat_return.vat_return import (
+		execute,
+		get_period,
+		get_previous_vat_return_filing,
+	)
 
 	filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
 	company = filters.get("company")
@@ -61,7 +65,9 @@ def create_vat_return_filing(filters):
 	doc.from_date = from_date
 	doc.to_date = to_date
 	doc.currency = frappe.db.get_value("Company", company, "default_currency")
+	previous = get_previous_vat_return_filing(company, from_date)
 	doc.box_12_excess_brought_forward = (box_map.get("12") or {}).get("vat_amount") or 0
+	doc.brought_forward_from = previous.name if previous else None
 	doc.box_16_excess_carried_forward = (box_map.get("16") or {}).get("vat_amount") or 0
 	doc.filters_json = frappe.as_json(filters)
 	doc.return_data_json = frappe.as_json(rows)
