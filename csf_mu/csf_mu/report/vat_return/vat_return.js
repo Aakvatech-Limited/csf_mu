@@ -1,4 +1,54 @@
 frappe.query_reports["VAT Return"] = {
+	onload(report) {
+		report.page.add_inner_button(
+			__("Backfill VAT Return Type"),
+			() => {
+				const company = report.get_filter_value("company");
+				if (!company) {
+					frappe.msgprint(__("Select a Company before running the backfill."));
+					return;
+				}
+
+				frappe.confirm(
+					__(
+						"Populate blank VAT Return Type values on submitted Sales and Purchase Invoice Items for {0}? Existing classifications will not be changed.",
+						[company]
+					),
+					() => {
+						frappe.call({
+							method: "csf_mu.csf_mu.custom_api.backfill_vat_return_type",
+							args: { company },
+							freeze: true,
+							freeze_message: __("Backfilling VAT Return Type..."),
+							callback(r) {
+								if (r.exc || !r.message) {
+									return;
+								}
+
+								const result = r.message;
+								frappe.msgprint({
+									title: __("VAT Return Type Backfill Complete"),
+									indicator: result.updated ? "green" : "blue",
+									message: __(
+										"Updated: {0}<br>Already classified: {1}<br>Missing Item Tax Template: {2}<br>Item Tax Template without VAT Return Type: {3}<br>Purchase rows converted to capital goods: {4}",
+										[
+											result.updated,
+											result.already_classified,
+											result.missing_item_tax_template,
+											result.unmapped_item_tax_template,
+											result.capital_goods,
+										]
+									),
+								});
+								report.refresh();
+							},
+						});
+					}
+				);
+			},
+			__("Actions")
+		);
+	},
 	filters: [
 		{fieldname:"company",label:__("Company"),fieldtype:"Link",options:"Company",default:frappe.defaults.get_user_default("Company"),reqd:1},
 		{fieldname:"time_span",label:__("Taxable Period"),fieldtype:"Select",options:["This Month","Last Month","This Quarter","Last Quarter","Custom Period"],default:"Last Month",reqd:1},
