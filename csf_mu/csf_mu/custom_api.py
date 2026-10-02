@@ -15,6 +15,92 @@ def backfill_vat_return_type(company):
 
 
 @frappe.whitelist()
+def create_vat_return_filing(filters):
+	from csf_mu.csf_mu.report.vat_return.vat_return import (
+		execute,
+		get_period,
+		get_previous_vat_return_filing,
+	)
+
+	filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+	company = filters.get("company")
+	if not company:
+		frappe.throw("Company is required")
+	if not frappe.has_permission("VAT Return Filing", ptype="create"):
+		frappe.throw("You do not have permission to create VAT Return Filing.")
+
+	from_date, to_date = get_period(frappe._dict(filters))
+	submitted = frappe.db.get_value(
+		"VAT Return Filing",
+		{
+			"company": company,
+			"from_date": from_date,
+			"to_date": to_date,
+			"docstatus": 1,
+		},
+		"name",
+	)
+	if submitted:
+		return {"name": submitted, "submitted": 1}
+
+	_, rows = execute(filters)
+	box_map = {row.get("box"): row for row in rows if row.get("box")}
+	draft = frappe.db.get_value(
+		"VAT Return Filing",
+		{
+			"company": company,
+			"from_date": from_date,
+			"to_date": to_date,
+			"docstatus": 0,
+		},
+		"name",
+	)
+	if draft:
+		doc = frappe.get_doc("VAT Return Filing", draft)
+		doc.check_permission("write")
+	else:
+		doc = frappe.new_doc("VAT Return Filing")
+
+	doc.company = company
+	doc.from_date = from_date
+	doc.to_date = to_date
+	doc.currency = frappe.db.get_value("Company", company, "default_currency")
+	manual_b12 = filters.get("excess_vat_brought_forward")
+	previous = (
+		None
+		if manual_b12 not in (None, "")
+		else get_previous_vat_return_filing(company, from_date)
+	)
+	doc.box_12_excess_brought_forward = (
+		(box_map.get("12") or {}).get("vat_amount") or 0
+	)
+	doc.brought_forward_from = previous.name if previous else None
+	doc.box_16_excess_carried_forward = (
+		(box_map.get("16") or {}).get("vat_amount") or 0
+	)
+	doc.filters_json = frappe.as_json(filters)
+	doc.return_data_json = frappe.as_json(rows)
+	doc.set("lines", [])
+	for row in rows:
+		doc.append(
+			"lines",
+			{
+				"box": row.get("box"),
+				"description": row.get("description"),
+				"value_amount": row.get("value_amount"),
+				"vat_amount": row.get("vat_amount"),
+				"currency": row.get("currency"),
+			},
+		)
+
+	if doc.is_new():
+		doc.insert()
+	else:
+		doc.save()
+	return {"name": doc.name, "submitted": 0}
+
+
+@frappe.whitelist()
 def create_mra_item_tax_templates(company):
 	if not company:
 		frappe.throw("Company is required")
