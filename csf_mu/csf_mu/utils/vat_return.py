@@ -90,6 +90,8 @@ def backfill_vat_return_types(company=None):
 		"unmapped_item_tax_template": sales["unmapped_item_tax_template"]
 		+ purchases["unmapped_item_tax_template"],
 		"capital_goods": purchases["capital_goods"],
+		"sales_invoices_updated": sales["invoices_updated"],
+		"purchase_invoices_updated": purchases["invoices_updated"],
 	}
 
 
@@ -107,6 +109,7 @@ def _backfill_invoice_items(
 		.on(Child.parent == Parent.name)
 		.select(
 			Child.name,
+			Child.parent,
 			Child.item_code,
 			Child.item_tax_template,
 			Child.vat_return_type,
@@ -124,7 +127,9 @@ def _backfill_invoice_items(
 		"missing_item_tax_template": 0,
 		"unmapped_item_tax_template": 0,
 		"capital_goods": 0,
+		"invoices_updated": 0,
 	}
+	updated_invoices = set()
 
 	for row in rows:
 		if row.vat_return_type:
@@ -155,6 +160,9 @@ def _backfill_invoice_items(
 					vat_return_type = capital_goods_type
 					stats["capital_goods"] += 1
 
+		# Update the submitted invoice child row directly. This deliberately
+		# bypasses Document.save(), so neither the child nor parent modified
+		# timestamp changes and no Version record is created.
 		frappe.db.set_value(
 			child_doctype,
 			row.name,
@@ -163,5 +171,7 @@ def _backfill_invoice_items(
 			update_modified=False,
 		)
 		stats["updated"] += 1
+		updated_invoices.add(row.parent)
 
+	stats["invoices_updated"] = len(updated_invoices)
 	return stats
