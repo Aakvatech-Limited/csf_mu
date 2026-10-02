@@ -49,6 +49,12 @@ def set_sales_invoice_vat_return_types(doc, method=None):
 			row.vat_return_type = vat_return_type
 
 
+def set_purchase_invoice_vat_claim_dates(doc, method=None):
+	for row in doc.get("items", []):
+		if not row.get("vat_claim_date"):
+			row.vat_claim_date = doc.posting_date
+
+
 def set_purchase_invoice_vat_return_types(doc, method=None):
 	for row in doc.get("items", []):
 		default_type = _get_item_tax_template_vat_return_type(row.get("item_tax_template"))
@@ -67,6 +73,7 @@ def set_purchase_invoice_vat_return_types(doc, method=None):
 
 
 def backfill_vat_return_types(company=None):
+	claim_dates_updated = _backfill_purchase_vat_claim_dates(company=company)
 	sales = _backfill_invoice_items(
 		"Sales Invoice",
 		"Sales Invoice Item",
@@ -92,7 +99,36 @@ def backfill_vat_return_types(company=None):
 		"capital_goods": purchases["capital_goods"],
 		"sales_invoices_updated": sales["invoices_updated"],
 		"purchase_invoices_updated": purchases["invoices_updated"],
+		"claim_dates_updated": claim_dates_updated,
 	}
+
+
+def _backfill_purchase_vat_claim_dates(company=None):
+	Parent = frappe.qb.DocType("Purchase Invoice")
+	Child = frappe.qb.DocType("Purchase Invoice Item")
+	query = (
+		frappe.qb.from_(Child)
+		.join(Parent)
+		.on(Child.parent == Parent.name)
+		.select(Child.name, Child.vat_claim_date, Parent.posting_date)
+		.where(Parent.docstatus == 1)
+	)
+	if company:
+		query = query.where(Parent.company == company)
+
+	updated = 0
+	for row in query.run(as_dict=True):
+		if row.vat_claim_date or not row.posting_date:
+			continue
+		frappe.db.set_value(
+			"Purchase Invoice Item",
+			row.name,
+			"vat_claim_date",
+			row.posting_date,
+			update_modified=False,
+		)
+		updated += 1
+	return updated
 
 
 def _backfill_invoice_items(
