@@ -1,5 +1,18 @@
 import frappe
 
+from csf_mu.csf_mu.utils.vat_return import backfill_vat_return_types
+
+
+@frappe.whitelist()
+def backfill_vat_return_type(company):
+	if not company:
+		frappe.throw("Company is required")
+
+	company_doc = frappe.get_doc("Company", company)
+	company_doc.check_permission("write")
+
+	return backfill_vat_return_types(company=company)
+
 
 @frappe.whitelist()
 def create_mra_item_tax_templates(company):
