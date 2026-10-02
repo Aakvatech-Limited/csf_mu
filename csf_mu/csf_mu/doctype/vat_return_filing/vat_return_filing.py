@@ -9,21 +9,21 @@ class VATReturnFiling(Document):
 			frappe.throw("From Date cannot be after To Date.")
 
 	def before_submit(self):
-		duplicate = frappe.db.exists(
+		overlap = frappe.get_all(
 			"VAT Return Filing",
-			{
+			filters={
 				"company": self.company,
-				"from_date": self.from_date,
-				"to_date": self.to_date,
 				"docstatus": 1,
+				"from_date": ["<=", self.to_date],
+				"to_date": [">=", self.from_date],
 				"name": ["!=", self.name],
 			},
+			pluck="name",
+			limit=1,
 		)
-		if duplicate:
+		if overlap:
 			frappe.throw(
-				"VAT Return Filing {0} is already submitted for this company and period.".format(
-					duplicate
-				)
+				f"Submitted VAT Return Filing {overlap[0]} overlaps this taxable period."
 			)
 		if not self.filing_date:
 			self.filing_date = today()
