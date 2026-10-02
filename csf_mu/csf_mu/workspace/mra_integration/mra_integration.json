@@ -191,9 +191,20 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "VAT Return Filing",
+   "link_count": 0,
+   "link_to": "VAT Return Filing",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-10-01 23:00:00.000000",
+ "modified": "2026-10-02 11:05:00.000000",
  "modified_by": "Administrator",
  "module": "CSF MU",
  "name": "MRA Integration",
@@ -252,6 +263,13 @@
    "label": "VAT Return Dashboard",
    "link_to": "VAT Return",
    "type": "Dashboard"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "List",
+   "label": "VAT Return Filings",
+   "link_to": "VAT Return Filing",
+   "type": "DocType"
   },
   {
    "color": "Green",
