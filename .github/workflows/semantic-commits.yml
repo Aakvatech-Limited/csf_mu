@@ -28,4 +28,4 @@ jobs:
       - name: Check commit messages
         run: |
           npm install @commitlint/cli @commitlint/config-conventional conventional-changelog-conventionalcommits
-          npx commitlint --extends @commitlint/config-conventional --verbose --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+          npx commitlint --verbose --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
