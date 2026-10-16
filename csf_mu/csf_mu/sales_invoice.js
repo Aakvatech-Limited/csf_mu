@@ -10,16 +10,20 @@ frappe.ui.form.on("Sales Invoice", {
 			return;
 		}
 
-		frm.add_custom_button(__("Re-Send to MRA"), () => {
-			frappe.call({
-				method: "csf_mu.csf_mu.utils.mra_invoice.resend_invoice_to_mra",
-				args: { sales_invoice: frm.doc.name },
-				freeze: true,
-				callback: () => {
-					frm.reload_doc();
-				},
-			});
-		}, __("MRA"));
+		frm.add_custom_button(
+			__("Re-Send to MRA"),
+			() => {
+				frappe.call({
+					method: "csf_mu.csf_mu.utils.mra_invoice.resend_invoice_to_mra",
+					args: { sales_invoice: frm.doc.name },
+					freeze: true,
+					callback: () => {
+						frm.reload_doc();
+					},
+				});
+			},
+			__("MRA")
+		);
 	},
 	is_return(frm) {
 		frm.trigger("set_mra_invoice_type");
