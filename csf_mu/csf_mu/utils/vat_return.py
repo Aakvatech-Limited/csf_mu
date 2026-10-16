@@ -1,7 +1,6 @@
 import frappe
 from frappe.utils import cint
 
-
 VAT_RETURN_TYPES = (
 	("1.1", "Zero-rated supplies (Exports)", "Sales", None),
 	("1.2", "Zero-rated supplies other than exports", "Sales", None),
@@ -30,8 +29,16 @@ def ensure_vat_return_types():
 			doc.capital_goods_vat_return_type = capital_goods_type
 			doc.insert(ignore_permissions=True)
 			continue
-		if capital_goods_type and not frappe.db.get_value("VAT Return Type", box_number, "capital_goods_vat_return_type"):
-			frappe.db.set_value("VAT Return Type", box_number, "capital_goods_vat_return_type", capital_goods_type, update_modified=False)
+		if capital_goods_type and not frappe.db.get_value(
+			"VAT Return Type", box_number, "capital_goods_vat_return_type"
+		):
+			frappe.db.set_value(
+				"VAT Return Type",
+				box_number,
+				"capital_goods_vat_return_type",
+				capital_goods_type,
+				update_modified=False,
+			)
 
 
 def _get_item_tax_template_vat_return_type(item_tax_template):
@@ -61,7 +68,9 @@ def set_purchase_invoice_vat_return_types(doc, method=None):
 			is_fixed_asset = cint(frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0)
 		if not is_fixed_asset or row.vat_return_type != default_type:
 			continue
-		capital_goods_type = frappe.db.get_value("VAT Return Type", row.vat_return_type, "capital_goods_vat_return_type")
+		capital_goods_type = frappe.db.get_value(
+			"VAT Return Type", row.vat_return_type, "capital_goods_vat_return_type"
+		)
 		if capital_goods_type:
 			row.vat_return_type = capital_goods_type
 
@@ -83,8 +92,7 @@ def backfill_vat_return_types(company=None):
 		"sales": sales,
 		"purchases": purchases,
 		"updated": sales["updated"] + purchases["updated"],
-		"already_classified": sales["already_classified"]
-		+ purchases["already_classified"],
+		"already_classified": sales["already_classified"] + purchases["already_classified"],
 		"missing_item_tax_template": sales["missing_item_tax_template"]
 		+ purchases["missing_item_tax_template"],
 		"unmapped_item_tax_template": sales["unmapped_item_tax_template"]
@@ -139,17 +147,13 @@ def _backfill_invoice_items(
 			stats["missing_item_tax_template"] += 1
 			continue
 
-		vat_return_type = _get_item_tax_template_vat_return_type(
-			row.item_tax_template
-		)
+		vat_return_type = _get_item_tax_template_vat_return_type(row.item_tax_template)
 		if not vat_return_type:
 			stats["unmapped_item_tax_template"] += 1
 			continue
 
 		if apply_capital_goods and row.item_code:
-			is_fixed_asset = cint(
-				frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0
-			)
+			is_fixed_asset = cint(frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0)
 			if is_fixed_asset:
 				capital_goods_type = frappe.db.get_value(
 					"VAT Return Type",
