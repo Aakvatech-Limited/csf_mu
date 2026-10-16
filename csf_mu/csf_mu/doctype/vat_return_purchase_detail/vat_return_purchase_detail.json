@@ -1,0 +1,132 @@
+{
+ "doctype": "DocType",
+ "name": "VAT Return Purchase Detail",
+ "module": "CSF MU",
+ "istable": 1,
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "source_doctype",
+  "source_invoice",
+  "source_item",
+  "party",
+  "invoice_date",
+  "posting_date",
+  "claim_date",
+  "vat_return_type",
+  "item_code",
+  "taxable_value",
+  "vat_amount",
+  "recovery_treatment",
+  "recoverable_vat",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Link",
+   "label": "Source Doctype",
+   "read_only": 1,
+   "in_list_view": 0,
+   "options": "DocType"
+  },
+  {
+   "fieldname": "source_invoice",
+   "fieldtype": "Dynamic Link",
+   "label": "Source Invoice",
+   "options": "source_doctype",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source_item",
+   "fieldtype": "Data",
+   "label": "Source Item",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Data",
+   "label": "Party",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "invoice_date",
+   "fieldtype": "Date",
+   "label": "Invoice Date",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "claim_date",
+   "fieldtype": "Date",
+   "label": "Claim Date",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "vat_return_type",
+   "fieldtype": "Link",
+   "label": "Vat Return Type",
+   "options": "VAT Return Type",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "taxable_value",
+   "fieldtype": "Currency",
+   "label": "Taxable Value",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "Vat Amount",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "recovery_treatment",
+   "fieldtype": "Select",
+   "label": "Recovery Treatment",
+   "options": "Full\nShared\nNone",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "recoverable_vat",
+   "fieldtype": "Currency",
+   "label": "Recoverable Vat",
+   "read_only": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "read_only": 1,
+   "in_list_view": 0
+  }
+ ],
+ "permissions": [],
+ "actions": [],
+ "states": []
+}
