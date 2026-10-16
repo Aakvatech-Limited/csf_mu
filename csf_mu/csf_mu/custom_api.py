@@ -66,18 +66,10 @@ def create_vat_return_filing(filters):
 	doc.to_date = to_date
 	doc.currency = frappe.db.get_value("Company", company, "default_currency")
 	manual_b12 = filters.get("excess_vat_brought_forward")
-	previous = (
-		None
-		if manual_b12 not in (None, "")
-		else get_previous_vat_return_filing(company, from_date)
-	)
-	doc.box_12_excess_brought_forward = (
-		(box_map.get("12") or {}).get("vat_amount") or 0
-	)
+	previous = None if manual_b12 not in (None, "") else get_previous_vat_return_filing(company, from_date)
+	doc.box_12_excess_brought_forward = (box_map.get("12") or {}).get("vat_amount") or 0
 	doc.brought_forward_from = previous.name if previous else None
-	doc.box_16_excess_carried_forward = (
-		(box_map.get("16") or {}).get("vat_amount") or 0
-	)
+	doc.box_16_excess_carried_forward = (box_map.get("16") or {}).get("vat_amount") or 0
 	doc.filters_json = frappe.as_json(filters)
 	doc.return_data_json = frappe.as_json(rows)
 	doc.set("lines", [])
@@ -110,18 +102,14 @@ def create_mra_item_tax_templates(company):
 
 	tax_account = _get_default_vat_account(company)
 	if not tax_account:
-		frappe.throw(
-			"No VAT tax account found. Please create a VAT tax account for this company."
-		)
+		frappe.throw("No VAT tax account found. Please create a VAT tax account for this company.")
 
 	tax_templates = _get_mra_tax_templates(abbr)
 
 	created = []
 	for tmpl in tax_templates:
 		title = tmpl["title"]
-		template_name = frappe.db.get_value(
-			"Item Tax Template", {"title": title, "company": company}, "name"
-		)
+		template_name = frappe.db.get_value("Item Tax Template", {"title": title, "company": company}, "name")
 		if not template_name:
 			legacy_title = f"{title} - {abbr}"
 			template_name = frappe.db.get_value(
