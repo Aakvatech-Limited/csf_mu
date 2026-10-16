@@ -74,3 +74,70 @@ class TestVATReturnFiling(FrappeTestCase):
 		self.assertEqual(15000 * 0.71, 10650)
 		self.assertEqual(15000 * 1, 15000)
 		self.assertEqual(15000 * 0, 0)
+
+	def test_name_only_sales_item_uses_its_vat_return_type(self):
+		item = frappe._dict({
+			"name": "sales-row-1", "idx": 1, "item_code": None,
+			"item_name": "POLOSHIRT BEIGE", "base_net_amount": 1000,
+			"vat_return_type": "1.4",
+		})
+		invoice = frappe._dict({
+			"doctype": "Sales Invoice", "name": "SINV-BDCEL-2026-00090",
+			"customer": "Test Customer", "posting_date": "2026-06-15",
+			"conversion_rate": 1, "items": [item],
+			"taxes": [frappe._dict({
+				"account_head": "Output VAT 15%", "add_deduct_tax": "Add",
+				"base_tax_amount_after_discount_amount": 150, "idx": 1,
+				"item_wise_tax_detail": '{"POLOSHIRT BEIGE": [15, 150]}',
+			})],
+		})
+		rows = engine._source_rows(invoice, False, "2026-06-01", "2026-06-30", 71)
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["vat_return_type"], "1.4")
+		self.assertEqual(rows[0]["vat_amount"], 150)
+		self.assertIsNone(rows[0]["item_code"])
+
+	def test_name_only_sales_without_valid_type_raises(self):
+		for category in (None, "6.6", "99"):
+			with self.subTest(category=category):
+				invoice = frappe._dict({
+					"name": "SINV-TEST", "items": [frappe._dict({
+						"name": "row-1", "idx": 1, "item_code": None,
+						"item_name": "POLOSHIRT BEIGE", "vat_return_type": category,
+					})],
+				})
+				with self.assertRaises(frappe.ValidationError):
+					engine._validate_sales_return_types(invoice)
+
+	def test_repeated_item_names_are_apportioned_by_value(self):
+		invoice = frappe._dict({
+			"name": "SINV-REPEATED", "conversion_rate": 1,
+			"items": [
+				frappe._dict({"name": "row-1", "item_code": None, "item_name": "POLOSHIRT BEIGE", "base_net_amount": 100}),
+				frappe._dict({"name": "row-2", "item_code": None, "item_name": "POLOSHIRT BEIGE", "base_net_amount": 300}),
+			],
+			"taxes": [frappe._dict({
+				"account_head": "Output VAT 15%", "add_deduct_tax": "Add",
+				"base_tax_amount_after_discount_amount": 60, "idx": 1,
+				"item_wise_tax_detail": '{"POLOSHIRT BEIGE": [15, 60]}',
+			})],
+		})
+		totals = engine._item_vat(invoice)
+		self.assertAlmostEqual(totals["row-1"], 15)
+		self.assertAlmostEqual(totals["row-2"], 45)
+
+	def test_conflicting_code_and_name_matches_raise(self):
+		invoice = frappe._dict({
+			"name": "SINV-AMBIGUOUS", "conversion_rate": 1,
+			"items": [
+				frappe._dict({"name": "row-1", "item_code": "ABC", "item_name": "Named ABC", "base_net_amount": 100}),
+				frappe._dict({"name": "row-2", "item_code": None, "item_name": "ABC", "base_net_amount": 100}),
+			],
+			"taxes": [frappe._dict({
+				"account_head": "Output VAT 15%", "add_deduct_tax": "Add",
+				"base_tax_amount_after_discount_amount": 15, "idx": 1,
+				"item_wise_tax_detail": '{"ABC": [15, 15]}',
+			})],
+		})
+		with self.assertRaises(frappe.ValidationError):
+			engine._item_vat(invoice)
