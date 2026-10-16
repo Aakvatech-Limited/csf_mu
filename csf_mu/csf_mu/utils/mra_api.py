@@ -17,7 +17,6 @@ from csf_mu.csf_mu.utils.mra_settings import (
 	get_mra_settings,
 )
 
-
 MRA_DATETIME_FORMAT = "%Y%m%d %H:%M:%S"
 TOKEN_REFRESH_BUFFER = timedelta(minutes=10)
 DEFAULT_TIMEOUT = 60
@@ -108,15 +107,11 @@ def get_token_and_mra_key(company, settings=None, settings_detail=None):
 	settings_detail = settings_detail or get_company_mra_settings(company)
 
 	if not settings_detail.public_key_certificate:
-		frappe.throw(
-			f"Public Key Certificate is required in CSF MU Settings Detail for company {company}."
-		)
+		frappe.throw(f"Public Key Certificate is required in CSF MU Settings Detail for company {company}.")
 
 	now = now_datetime()
 	cached_token = settings_detail.token
-	cached_key_b64 = settings_detail.get_password(
-		"mra_encryption_key", raise_exception=False
-	)
+	cached_key_b64 = settings_detail.get_password("mra_encryption_key", raise_exception=False)
 	expiry_dt = _parse_mra_datetime(settings_detail.token_expiry)
 	if cached_token and cached_key_b64 and expiry_dt:
 		if expiry_dt - TOKEN_REFRESH_BUFFER > now:
@@ -157,9 +152,7 @@ def get_token_and_mra_key(company, settings=None, settings_detail=None):
 		timeout=DEFAULT_TIMEOUT,
 	)
 	if resp.status_code >= 400:
-		raise frappe.ValidationError(
-			f"Auth failed ({resp.status_code}): {resp.text}"
-		)
+		raise frappe.ValidationError(f"Auth failed ({resp.status_code}): {resp.text}")
 	data = resp.json()
 
 	if data.get("status") != "SUCCESS":
@@ -170,9 +163,7 @@ def get_token_and_mra_key(company, settings=None, settings_detail=None):
 	if expiry_dt:
 		settings_detail.db_set("token_expiry", expiry_dt, update_modified=False)
 	else:
-		settings_detail.db_set(
-			"token_expiry", data.get("expiryDate"), update_modified=False
-		)
+		settings_detail.db_set("token_expiry", data.get("expiryDate"), update_modified=False)
 
 	encrypted_key_b64 = data.get("key") or ""
 	if not encrypted_key_b64:
@@ -184,9 +175,7 @@ def get_token_and_mra_key(company, settings=None, settings_detail=None):
 	except Exception:
 		mra_key = decrypted
 	try:
-		settings_detail.set_password(
-			"mra_encryption_key", base64.b64encode(mra_key).decode()
-		)
+		settings_detail.set_password("mra_encryption_key", base64.b64encode(mra_key).decode())
 	except Exception:
 		pass
 
@@ -228,9 +217,9 @@ def transmit_invoice(payload_json, signed_hash, company, settings=None, settings
 
 	request_id = now_datetime().strftime("%Y%m%d%H%M%S")
 	request_datetime = _format_mra_datetime(now_datetime())
-	
+
 	encrypted_invoice = encrypt_invoice(payload_json, mra_key)
-	
+
 	request_payload = {
 		"requestId": request_id,
 		"requestDateTime": request_datetime,
@@ -245,7 +234,5 @@ def transmit_invoice(payload_json, signed_hash, company, settings=None, settings
 		timeout=DEFAULT_TIMEOUT,
 	)
 	if resp.status_code >= 400:
-		raise frappe.ValidationError(
-			f"Transmit failed ({resp.status_code}): {resp.text}"
-		)
+		raise frappe.ValidationError(f"Transmit failed ({resp.status_code}): {resp.text}")
 	return request_payload, resp.json()
