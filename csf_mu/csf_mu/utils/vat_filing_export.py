@@ -91,7 +91,8 @@ def download_mns_annex(name: str):
     filing_month = getdate(doc.from_date).strftime("%Y%m")
     writer.writerow([
         company.mra_tan, company.mra_brn, company.company_name, filing_month,
-        doc.declarant_phone or company.get("mra_business_phone") or "",\n        doc.declarant_mobile or "", doc.declarant_name, doc.declarant_email,
+        doc.declarant_phone or company.get("mra_business_phone") or "",
+        doc.declarant_mobile or "", doc.declarant_name, doc.declarant_email,
     ])
     writer.writerow([
         "VAT Registration No. of person to whom supplies is made",
