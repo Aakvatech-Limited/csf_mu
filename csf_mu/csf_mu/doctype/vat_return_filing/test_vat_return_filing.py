@@ -155,7 +155,7 @@ class TestVATReturnFiling(FrappeTestCase):
                     "taxes": [frappe._dict({
                         "idx": 1, "account_head": "Output VAT",
                         "add_deduct_tax": "Add",
-                        "item_wise_tax_detail": '{"TEST": [15, 150]}',
+                        "item_wise_tax_detail": frappe.as_json({"TEST": [15, 150 * rate]}),
                         "base_tax_amount_after_discount_amount": 150 * rate,
                     })],
                 })
@@ -184,7 +184,7 @@ class TestVATReturnFiling(FrappeTestCase):
             "taxes": [frappe._dict({
                 "idx": 1, "account_head": "Input VAT",
                 "add_deduct_tax": "Add",
-                "item_wise_tax_detail": '{"TEST": [15, 150]}',
+                "item_wise_tax_detail": '{"TEST": [15, 6900]}',
                 "base_tax_amount_after_discount_amount": 6900,
             })],
         })
@@ -207,3 +207,61 @@ class TestVATReturnFiling(FrappeTestCase):
         with patch.object(frappe.db, "get_value", return_value="MUR"):
             engine._set_filing_currency(doc)
         self.assertEqual(doc.currency, "MUR")
+
+    def test_actual_eur_invoice_item_detail_is_already_in_mur(self):
+        """BDCEL SINV-BDCEL-2026-00128: item detail is base MUR, not EUR."""
+        invoice = frappe._dict({
+            "doctype": "Sales Invoice",
+            "name": "SINV-BDCEL-2026-00128",
+            "customer": "CUST-06380",
+            "posting_date": "2026-07-13",
+            "currency": "EUR",
+            "conversion_rate": 54,
+            "items": [
+                frappe._dict({
+                    "name": "dkl2g3e640", "idx": 1, "item_code": "STST10001",
+                    "item_name": "Daily Rate", "vat_return_type": "1.4",
+                    "base_net_amount": 8217.18,
+                }),
+                frappe._dict({
+                    "name": "dkl28avtj2", "idx": 2, "item_code": "STST10013",
+                    "item_name": "Gold Medal Trophy", "vat_return_type": "1.4",
+                    "base_net_amount": 75130.20,
+                }),
+            ],
+            "taxes": [frappe._dict({
+                "idx": 1, "account_head": "501150 - Vat Output - BDCEL",
+                "add_deduct_tax": "Add",
+                "tax_amount_after_discount_amount": 231.52,
+                "base_tax_amount_after_discount_amount": 12502.08,
+                "item_wise_tax_detail":
+                    '{"STST10001":[15.0,1232.577],"STST10013":[15.0,11269.529999999999]}',
+            })],
+        })
+        rows = engine._source_rows(
+            invoice, False, "2026-07-01", "2026-07-31", 100
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertAlmostEqual(sum(r["taxable_value"] for r in rows), 83347.38)
+        self.assertAlmostEqual(sum(r["vat_amount"] for r in rows), 12502.107)
+        self.assertAlmostEqual(rows[0]["vat_amount"], 1232.577)
+
+    def test_exempt_purchase_with_vat_is_not_silently_claimed(self):
+        invoice = frappe._dict({
+            "doctype": "Purchase Invoice", "name": "PINV-EXEMPT",
+            "supplier": "Test Supplier", "posting_date": "2026-07-13",
+            "bill_date": "2026-07-13", "conversion_rate": 1,
+            "items": [frappe._dict({
+                "name": "purchase-1", "idx": 2, "item_code": "TEST",
+                "item_name": "Test Item", "vat_return_type": "8.2",
+                "base_net_amount": 1000,
+            })],
+            "taxes": [frappe._dict({
+                "idx": 1, "account_head": "Input VAT",
+                "add_deduct_tax": "Add",
+                "base_tax_amount_after_discount_amount": 150,
+                "item_wise_tax_detail": '{"TEST":[15,150]}',
+            })],
+        })
+        with self.assertRaisesRegex(frappe.ValidationError, "does not permit VAT recovery"):
+            engine._source_rows(invoice, True, "2026-07-01", "2026-07-31", 100)
