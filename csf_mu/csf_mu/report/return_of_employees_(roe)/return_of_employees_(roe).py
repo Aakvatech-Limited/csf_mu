@@ -1,8 +1,7 @@
+import erpnext
 import frappe
 from frappe import _
 from frappe.utils import flt
-
-import erpnext
 
 
 def execute(filters=None):
@@ -85,7 +84,12 @@ def get_data(filters, currency):
 	paye_components = get_paye_components()
 	paye_components_sql = ", ".join(frappe.db.escape(component) for component in paye_components)
 
-	conditions = ["ss.docstatus = 1", "ss.company = %(company)s", "ss.start_date >= %(from_date)s", "ss.end_date <= %(to_date)s"]
+	conditions = [
+		"ss.docstatus = 1",
+		"ss.company = %(company)s",
+		"ss.start_date >= %(from_date)s",
+		"ss.end_date <= %(to_date)s",
+	]
 
 	if filters.get("employee"):
 		conditions.append("ss.employee = %(employee)s")
