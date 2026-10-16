@@ -6,40 +6,44 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "overview_section",
   "naming_series",
   "company",
   "currency",
-  "column_break_1",
+  "recovery_percentage",
+  "overview_right",
   "from_date",
   "to_date",
   "filing_month",
-  "recovery_percentage",
   "filing_status",
-  "filing_section",
-  "filing_date",
-  "mra_acknowledgement_reference",
-  "declarant_name",
-  "declarant_email",
-  "declarant_mobile",
-  "declarant_phone",
+  "totals_section",
+  "output_vat",
+  "input_vat",
+  "totals_right",
+  "vat_payable",
   "carry_section",
   "box_12_excess_brought_forward",
   "brought_forward_from",
+  "excess_brought_forward_manual",
+  "opening_credit_reason",
   "column_break_2",
   "box_16_excess_carried_forward",
   "lines_section",
   "lines",
-  "output_vat",
-  "input_vat",
-  "vat_payable",
   "sales_details_section",
   "sales_details",
   "purchase_details_section",
   "purchase_details",
   "adjustments_section",
   "adjustments",
-  "excess_brought_forward_manual",
-  "opening_credit_reason",
+  "filing_section",
+  "filing_date",
+  "mra_acknowledgement_reference",
+  "filing_right",
+  "declarant_name",
+  "declarant_email",
+  "declarant_mobile",
+  "declarant_phone",
   "snapshot_section",
   "filters_json",
   "return_data_json",
@@ -90,7 +94,8 @@
   {
    "fieldname": "filing_section",
    "fieldtype": "Section Break",
-   "label": "MRA Filing"
+   "label": "MRA Filing",
+   "collapsible": 1
   },
   {
    "fieldname": "filing_date",
@@ -114,7 +119,7 @@
    "fieldtype": "Currency",
    "label": "Box 12 - Excess VAT Brought Forward",
    "options": "currency",
-   "read_only": 1
+   "read_only": 0
   },
   {
    "fieldname": "brought_forward_from",
@@ -132,7 +137,7 @@
    "fieldtype": "Currency",
    "label": "Box 16 - Excess VAT Carried Forward",
    "options": "currency",
-   "read_only": 1
+   "read_only": 0
   },
   {
    "fieldname": "lines_section",
@@ -148,7 +153,8 @@
   {
    "fieldname": "snapshot_section",
    "fieldtype": "Section Break",
-   "label": "Technical Snapshot"
+   "label": "Technical Snapshot",
+   "collapsible": 1
   },
   {
    "fieldname": "filters_json",
@@ -284,6 +290,28 @@
    "in_list_view": 1,
    "read_only": 1,
    "description": "YYYY-MM taxable period"
+  },
+  {
+   "fieldname": "overview_section",
+   "fieldtype": "Section Break",
+   "label": "Return Information"
+  },
+  {
+   "fieldname": "overview_right",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "filing_right",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Summary"
+  },
+  {
+   "fieldname": "totals_right",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
