@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "doctype": "DocType",
+ "name": "CSF MU Company Settings",
+ "module": "CSF MU",
+ "engine": "InnoDB",
+ "autoname": "field:company",
+ "allow_rename": 0,
+ "track_changes": 1,
+ "field_order": [
+  "company_section",
+  "company",
+  "currency",
+  "vat_section",
+  "default_recovery_percentage",
+  "vat_reconciliation_tolerance",
+  "column_break_vat",
+  "auto_allocate_rounding_difference",
+  "block_unexplained_vat_differences"
+ ],
+ "fields": [
+  {
+   "fieldname": "company_section",
+   "fieldtype": "Section Break",
+   "label": "Company"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Company",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "options": "Currency",
+   "label": "Base Currency",
+   "read_only": 1,
+   "fetch_from": "company.default_currency"
+  },
+  {
+   "fieldname": "vat_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Return Filing"
+  },
+  {
+   "fieldname": "default_recovery_percentage",
+   "fieldtype": "Percent",
+   "label": "Default Recoverable Input VAT (%)",
+   "default": "100",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Applied only to purchase invoice rows marked Shared."
+  },
+  {
+   "fieldname": "vat_reconciliation_tolerance",
+   "fieldtype": "Currency",
+   "options": "currency",
+   "label": "VAT Reconciliation Tolerance",
+   "default": "0.5",
+   "reqd": 1,
+   "non_negative": 1,
+   "description": "Maximum permitted absolute base-currency rounding difference per tax row."
+  },
+  {
+   "fieldname": "column_break_vat",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "auto_allocate_rounding_difference",
+   "fieldtype": "Check",
+   "label": "Auto-Allocate Rounding Difference",
+   "default": "1"
+  },
+  {
+   "fieldname": "block_unexplained_vat_differences",
+   "fieldtype": "Check",
+   "label": "Block Unexplained VAT Differences",
+   "default": "1"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "print": 1,
+   "export": 1
+  }
+ ]
+}
