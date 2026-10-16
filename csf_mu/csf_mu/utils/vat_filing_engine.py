@@ -186,8 +186,14 @@ def recalculate(doc, validating_submission=False):
         if row.vat_return_type in VAT_PURCHASE_BOXES:
             if row.recovery_treatment not in ("Full", "Shared", "None"):
                 frappe.throw(f"Invalid recovery treatment on {row.source_invoice}")
-            vat["deductible"] += (flt(row.vat_amount) if row.recovery_treatment == "Full" else
-                                  flt(row.vat_amount) * pct / 100 if row.recovery_treatment == "Shared" else 0)
+            row.recoverable_vat = (
+                flt(row.vat_amount)
+                if row.recovery_treatment == "Full"
+                else flt(row.vat_amount) * pct / 100
+                if row.recovery_treatment == "Shared"
+                else 0
+            )
+            vat["deductible"] += row.recoverable_vat
     adjustments = defaultdict(float)
     for row in doc.get("adjustments") or []:
         if not row.reference or not row.reason:
@@ -203,7 +209,10 @@ def recalculate(doc, validating_submission=False):
     doc.output_vat, doc.input_vat = output, input_claim
     doc.box_12_excess_brought_forward = opening
     doc.brought_forward_from = None if doc.excess_brought_forward_manual else previous[0].name if previous else None
-    doc.box_16_excess_carried_forward = max(0, -net)
+    repayment = adjustments["15.1"] + adjustments["15.2"]
+    if repayment < 0 or repayment > max(0, -net):
+        frappe.throw("Repayment claim must not exceed available excess VAT")
+    doc.box_16_excess_carried_forward = max(0, -net - repayment)
     doc.vat_payable = max(0, net) + adjustments["17"] + adjustments["18"]
     summaries = [
         ("1.1","Zero-rated supplies (Exports)",box["1.1"],0),
@@ -218,7 +227,7 @@ def recalculate(doc, validating_submission=False):
         ("9","Total input",sum(box[x] for x in PURCHASE_BOXES),sum(vat[x] for x in VAT_PURCHASE_BOXES)),
         ("10","Input VAT deductible",0,input_claim),
         ("11","VAT payable for period",0,output-input_claim),
-        ("12","Excess VAT brought forward",0,opening),
+        ("12","Excess VAT brought forward",0,-opening),
         ("13","VAT adjustment",0,adjustments["13"]),
         ("14","VAT due and payable",0,doc.vat_payable),
         ("15.1","Repayment on capital goods",0,adjustments["15.1"]),
