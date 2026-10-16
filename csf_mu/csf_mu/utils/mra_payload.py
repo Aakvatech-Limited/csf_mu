@@ -3,9 +3,8 @@ import hashlib
 import frappe
 from frappe.utils import cint, get_datetime
 
-from csf_mu.csf_mu.utils.mra_tax import get_mra_tax_map
 from csf_mu.csf_mu.utils.mra_settings import get_company_mra_settings
-
+from csf_mu.csf_mu.utils.mra_tax import get_mra_tax_map
 
 MRA_DATETIME_FORMAT = "%Y%m%d %H:%M:%S"
 
@@ -190,9 +189,7 @@ def build_mra_invoice_payload(doc):
 		}
 
 		if doc.currency and doc.currency != "MUR":
-			item["amtWoVatMur"] = str(
-				_normalize_amount(row.base_net_amount, invoice_type_desc)
-			)
+			item["amtWoVatMur"] = str(_normalize_amount(row.base_net_amount, invoice_type_desc))
 
 		items.append(item)
 		total_vat_amount += vat_amt
@@ -225,9 +222,7 @@ def build_mra_invoice_payload(doc):
 	}
 
 	if doc.currency and doc.currency != "MUR":
-		payload["totalAmtWoVatMur"] = str(
-			_normalize_amount(doc.base_net_total, invoice_type_desc)
-		)
+		payload["totalAmtWoVatMur"] = str(_normalize_amount(doc.base_net_total, invoice_type_desc))
 
 	buyer = _get_buyer_details(doc.customer)
 	if buyer:
