@@ -7,8 +7,8 @@ from csf_mu.csf_mu.utils import vat_filing_engine as engine
 
 class VATReturnFiling(Document):
     def validate(self):
-        if self.company and not self.currency:
-            self.currency = frappe.db.get_value("Company", self.company, "default_currency")
+        if self.company:
+            engine._set_filing_currency(self)
         if self.from_date:
             self.filing_month = getdate(self.from_date).strftime("%Y-%m")
         if getdate(self.from_date) > getdate(self.to_date):
