@@ -58,21 +58,18 @@ def before_cancel_invoice(doc, method=None):
 
 
 def validate_sales_invoice_claims(doc, method=None):
-    """Stop reclassification of output VAT after the relevant return is submitted."""
-    prior_doc = doc.get_doc_before_save()
-    if not prior_doc:
-        return
-    previous_rows = {row.name: row for row in prior_doc.items}
-    for row in doc.items:
-        previous = previous_rows.get(row.name)
-        if previous and (
-            row.vat_return_type != previous.vat_return_type
-            or row.base_net_amount != previous.base_net_amount
-        ):
-            filed = _linked_filing(doc.doctype, source_item=row.name)
-            if filed:
-                frappe.throw(
-                    frappe._("Sales item {0} is locked by submitted VAT filing {1}").format(
-                        row.idx, filed
-                    )
-                )
+	"""Stop reclassification of output VAT after the relevant return is submitted."""
+	prior_doc = doc.get_doc_before_save()
+	if not prior_doc:
+		return
+	previous_rows = {row.name: row for row in prior_doc.items}
+	for row in doc.items:
+		previous = previous_rows.get(row.name)
+		if previous and (
+			row.vat_return_type != previous.vat_return_type or row.base_net_amount != previous.base_net_amount
+		):
+			filed = _linked_filing(doc.doctype, source_item=row.name)
+			if filed:
+				frappe.throw(
+					frappe._("Sales item {0} is locked by submitted VAT filing {1}").format(row.idx, filed)
+				)

@@ -144,9 +144,9 @@ after_install = "csf_mu.patches.custom_fields.create_csf_mu_custom_fields.execut
 doc_events = {
 	"Sales Invoice": {
 		"validate": [
-            "csf_mu.csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra",
-            "csf_mu.csf_mu.utils.vat_claim_lock.validate_sales_invoice_claims",
-        ],
+			"csf_mu.csf_mu.utils.mra_tax.validate_sales_invoice_items_for_mra",
+			"csf_mu.csf_mu.utils.vat_claim_lock.validate_sales_invoice_claims",
+		],
 		"before_submit": "csf_mu.csf_mu.utils.vat_return.set_sales_invoice_vat_return_types",
 		"on_submit": "csf_mu.csf_mu.utils.mra_invoice.create_invoice_log",
 		"before_cancel": "csf_mu.csf_mu.utils.vat_claim_lock.before_cancel_invoice",
