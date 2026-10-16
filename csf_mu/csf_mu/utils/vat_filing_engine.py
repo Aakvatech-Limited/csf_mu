@@ -123,13 +123,10 @@ def _item_vat(invoice, errors=None):
             if not total and abs(amount) > 0.01:
                 problems.append(f"Tax row {tax.idx}, item {key}: zero net value with VAT")
                 continue
-            # ERPNext item_wise_tax_detail stores amounts in invoice currency.
-            # Convert once using the *posted invoice* rate; never a live FX quote.
-            rate = flt(invoice.get("conversion_rate"))
-            if rate <= 0:
-                problems.append(f"Invoice {invoice.name}: invalid conversion rate")
-                continue
-            vat = amount * rate
+            # ERPNext's item_wise_tax_detail is already in company base
+            # currency (as is base_tax_amount_after_discount_amount).
+            # Multiplying by conversion_rate here double-converts foreign invoices.
+            vat = amount
             for item in pool:
                 totals[item.name] += vat * (abs(money(item.base_net_amount)) / total if total else 0)
     expected = sum(money(tax.base_tax_amount_after_discount_amount) for tax in tax_rows)
@@ -179,7 +176,11 @@ def _source_rows(invoice, purchase, from_date, to_date, recovery, errors=None):
         value = money(item.base_net_amount)
         vat = money(tax_by_item.get(item.name, 0))
         if box not in ((*VAT_PURCHASE_BOXES, "7") if purchase else ("1.4",)) and abs(vat) > 0.03:
-            problems.append(f"Row {item.idx}: VAT on incompatible category ({box})")
+            problems.append(
+                f"Row {item.idx}: VAT amount {vat} is allocated to MRA box {box}, "
+                "which does not permit VAT recovery. Review the invoice tax "
+                "allocation and VAT Return Type; no VAT is claimed automatically."
+            )
             continue
         treatment = ((item.get("vat_recovery_treatment") or "Shared") if box in VAT_PURCHASE_BOXES else "None") if purchase else ""
         result.append({
