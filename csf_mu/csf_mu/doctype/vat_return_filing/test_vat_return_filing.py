@@ -136,3 +136,74 @@ class TestVATReturnFiling(FrappeTestCase):
         })
         with self.assertRaises(frappe.ValidationError):
             engine._item_vat(invoice)
+
+    def test_foreign_currency_vat_uses_posted_invoice_conversion_rate(self):
+        for currency, rate in (("MUR", 1), ("USD", 46), ("EUR", 50)):
+            with self.subTest(currency=currency):
+                invoice = frappe._dict({
+                    "name": f"SINV-{currency}",
+                    "doctype": "Sales Invoice",
+                    "customer": "Test Customer",
+                    "posting_date": "2026-10-01",
+                    "currency": currency,
+                    "conversion_rate": rate,
+                    "items": [frappe._dict({
+                        "name": "line-1", "idx": 1, "item_code": "TEST",
+                        "item_name": "Test Item", "vat_return_type": "1.4",
+                        "net_amount": 1000, "base_net_amount": 1000 * rate,
+                    })],
+                    "taxes": [frappe._dict({
+                        "idx": 1, "account_head": "Output VAT",
+                        "add_deduct_tax": "Add",
+                        "item_wise_tax_detail": '{"TEST": [15, 150]}',
+                        "base_tax_amount_after_discount_amount": 150 * rate,
+                    })],
+                })
+                rows = engine._source_rows(
+                    invoice, False, "2026-10-01", "2026-10-31", 100
+                )
+                self.assertEqual(len(rows), 1)
+                self.assertAlmostEqual(rows[0]["taxable_value"], 1000 * rate)
+                self.assertAlmostEqual(rows[0]["vat_amount"], 150 * rate)
+
+    def test_purchase_vat_stays_at_original_exchange_rate_when_claimed_later(self):
+        invoice = frappe._dict({
+            "name": "PINV-USD-DEFERRED",
+            "doctype": "Purchase Invoice",
+            "supplier": "Test Supplier",
+            "posting_date": "2026-07-01",
+            "bill_date": "2026-07-01",
+            "conversion_rate": 46,
+            "items": [frappe._dict({
+                "name": "purchase-line-1", "idx": 1,
+                "item_code": "TEST", "item_name": "Test Item",
+                "vat_return_type": "6.6", "vat_claim_date": "2026-10-01",
+                "vat_recovery_treatment": "Full",
+                "base_net_amount": 46000,
+            })],
+            "taxes": [frappe._dict({
+                "idx": 1, "account_head": "Input VAT",
+                "add_deduct_tax": "Add",
+                "item_wise_tax_detail": '{"TEST": [15, 150]}',
+                "base_tax_amount_after_discount_amount": 6900,
+            })],
+        })
+        rows = engine._source_rows(
+            invoice, True, "2026-10-01", "2026-10-31", 100
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["taxable_value"], 46000)
+        self.assertEqual(rows[0]["vat_amount"], 6900)
+        self.assertEqual(rows[0]["recoverable_vat"], 6900)
+
+    def test_filing_rejects_currency_other_than_company_base(self):
+        doc = frappe._dict({"company": "Test Company", "currency": "USD"})
+        with patch.object(frappe.db, "get_value", return_value="MUR"):
+            with self.assertRaises(frappe.ValidationError):
+                engine._set_filing_currency(doc)
+
+    def test_filing_currency_is_populated_from_company(self):
+        doc = frappe._dict({"company": "Test Company", "currency": None})
+        with patch.object(frappe.db, "get_value", return_value="MUR"):
+            engine._set_filing_currency(doc)
+        self.assertEqual(doc.currency, "MUR")
