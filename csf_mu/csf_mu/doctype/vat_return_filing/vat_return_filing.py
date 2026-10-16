@@ -47,6 +47,16 @@ class VATReturnFiling(Document):
                     frappe.throw("Reason is required when overriding the company VAT recovery percentage.")
         if not 0 <= float(self.recovery_percentage or 0) <= 100:
             frappe.throw("Input VAT recovery percentage must be between 0 and 100")
+        if self.docstatus == 0 and self.company and self.from_date:
+            opening_changed = self.is_new() or self.has_value_changed(
+                "excess_brought_forward_manual"
+            )
+            if opening_changed and self.get("lines"):
+                # Recalculate Box 12, Box 16, payable and snapshot lines together.
+                engine.recalculate(self)
+            else:
+                # Also populate Box 12 before the first successful transaction pull.
+                engine.sync_opening_credit(self)
 
     def before_submit(self):
         overlap = frappe.get_all(
