@@ -124,7 +124,7 @@ def create_invoice_log(doc, method=None):
 	_send_invoice_to_mra(doc, allow_existing_log=False)
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def resend_invoice_to_mra(sales_invoice):
 	doc = frappe.get_doc("Sales Invoice", sales_invoice)
 	if doc.docstatus != 1:
@@ -144,7 +144,7 @@ def get_prf_trn_setting(company=None):
 	return (settings_detail.enable_prf_trn if settings_detail else 0) or 0
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def batch_transmit_invoices(sales_invoices):
 	if isinstance(sales_invoices, str):
 		try:
