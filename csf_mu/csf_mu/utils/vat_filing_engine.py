@@ -87,6 +87,10 @@ def _item_tax_weight(item, tax_account, fallback_rate):
             raise ValueError(f"Invalid item_tax_rate on row {item.idx}")
         if tax_account in rates:
             return abs(money(item.base_net_amount)) * abs(flt(rates[tax_account]))
+    # Older invoice rows without item_tax_rate must not absorb VAT
+    # into an exempt or zero-rated reporting box.
+    if item.get("vat_return_type") in ("1.1", "1.2", "1.3", "3", "6.2", "6.5", "8.1", "8.2"):
+        return 0
     return abs(money(item.base_net_amount)) * abs(flt(fallback_rate))
 
 
@@ -142,7 +146,7 @@ def _item_vat(invoice, errors=None, tolerance=0.03, auto_allocate=True):
             try:
                 amount = money(calculation[1])
                 weights = [
-                    _item_tax_weight(item, tax.get("account_head"), calculation[0])
+                    _item_tax_weight(item, tax.get("account_head"), calculation[0] or tax.get("rate"))
                     for item in pool
                 ]
             except (ValueError, TypeError, IndexError) as exc:
