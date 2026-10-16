@@ -1,4 +1,31 @@
 frappe.ui.form.on("VAT Return Filing", {
+    company(frm) {
+        if (!frm.is_new() || !frm.doc.company) return;
+        frappe.db.get_value(
+            "CSF MU Company Settings",
+            frm.doc.company,
+            [
+                "default_recovery_percentage",
+                "vat_reconciliation_tolerance",
+                "auto_allocate_rounding_difference",
+                "block_unexplained_vat_differences",
+            ]
+        ).then(r => {
+            const s = r.message;
+            if (!s || s.default_recovery_percentage == null) {
+                frappe.msgprint(__("Please configure CSF MU Company Settings for {0}.", [frm.doc.company]));
+                return;
+            }
+            frm.set_value({
+                recovery_percentage: s.default_recovery_percentage,
+                configured_recovery_percentage: s.default_recovery_percentage,
+                vat_reconciliation_tolerance: s.vat_reconciliation_tolerance,
+                auto_allocate_rounding_difference: s.auto_allocate_rounding_difference,
+                block_unexplained_vat_differences: s.block_unexplained_vat_differences,
+                recovery_override_reason: "",
+            });
+        });
+    },
     refresh(frm) {
         if (frm.doc.docstatus === 0 && !frm.is_new()) {
             frm.add_custom_button(__("Pull Transactions"), () => {
