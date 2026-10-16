@@ -87,8 +87,5 @@ frappe.ui.form.on("VAT Return Filing", {
         frm.add_custom_button(__("Download MNS Annex"), () =>
             window.open("/api/method/csf_mu.csf_mu.utils.vat_filing_export.download_mns_annex?" + query)
         , __("Export"));
-        frm.add_custom_button(__("Print MRA VAT Return"), () =>
-            window.open("/printview?doctype=VAT%20Return%20Filing&name=" + encodeURIComponent(frm.doc.name) + "&format=MRA%20VAT%20Return")
-        , __("Export"));
     },
 });
