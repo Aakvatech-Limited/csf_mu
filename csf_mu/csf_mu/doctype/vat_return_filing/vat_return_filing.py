@@ -6,6 +6,34 @@ from csf_mu.csf_mu.utils import vat_filing_engine as engine
 
 
 class VATReturnFiling(Document):
+    def before_insert(self):
+        self._apply_company_defaults()
+
+    def _apply_company_defaults(self):
+        if not self.company:
+            return
+        settings = frappe.db.get_value(
+            "CSF MU Company Settings",
+            self.company,
+            [
+                "default_recovery_percentage",
+                "vat_reconciliation_tolerance",
+                "auto_allocate_rounding_difference",
+                "block_unexplained_vat_differences",
+            ],
+            as_dict=True,
+        )
+        if not settings:
+            frappe.throw(
+                f"Create CSF MU Company Settings for {self.company} before VAT filing."
+            )
+        self.configured_recovery_percentage = settings.default_recovery_percentage
+        if self.recovery_percentage is None:
+            self.recovery_percentage = settings.default_recovery_percentage
+        self.vat_reconciliation_tolerance = settings.vat_reconciliation_tolerance
+        self.auto_allocate_rounding_difference = settings.auto_allocate_rounding_difference
+        self.block_unexplained_vat_differences = settings.block_unexplained_vat_differences
+
     def validate(self):
         if self.company:
             engine._set_filing_currency(self)
@@ -13,6 +41,10 @@ class VATReturnFiling(Document):
             self.filing_month = getdate(self.from_date).strftime("%Y-%m")
         if getdate(self.from_date) > getdate(self.to_date):
             frappe.throw("From Date cannot be after To Date.")
+        if self.recovery_percentage is not None and self.configured_recovery_percentage is not None:
+            if abs(float(self.recovery_percentage) - float(self.configured_recovery_percentage)) > 0.000001:
+                if not self.recovery_override_reason:
+                    frappe.throw("Reason is required when overriding the company VAT recovery percentage.")
         if not 0 <= float(self.recovery_percentage or 0) <= 100:
             frappe.throw("Input VAT recovery percentage must be between 0 and 100")
 
