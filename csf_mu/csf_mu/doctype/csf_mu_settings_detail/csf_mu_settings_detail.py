@@ -4,4 +4,3 @@ from frappe.model.document import Document
 
 class CSFMUSettingsDetail(Document):
 	pass
-
