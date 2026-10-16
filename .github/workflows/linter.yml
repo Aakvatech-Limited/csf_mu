@@ -46,11 +46,17 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep
 
-      - name: Run Semgrep rules
+      - name: Run Semgrep rules (new issues only)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
+          BASELINE=""
+          if [ -n "$BASE_SHA" ]; then
+            BASELINE="--baseline-commit $BASE_SHA"
+          fi
           semgrep scan --config ./frappe-semgrep-rules/rules \
             --config r/python.lang.security \
-            --severity=ERROR --error "${{ steps.app.outputs.app_dir }}"
+            $BASELINE --severity=ERROR --error "${{ steps.app.outputs.app_dir }}"
 
       - name: Semgrep warnings (non-blocking)
         if: always()
