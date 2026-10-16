@@ -96,6 +96,15 @@ class VATReturnFiling(Document):
                 frappe.throw(f"{key} has changed: recalculate and save before submitting")
 
     @frappe.whitelist()
+    def backfill_missing_vat_types(self):
+        self.check_permission("write")
+        if self.docstatus != 0:
+            frappe.throw(frappe._("Backfill is available only on Draft filings"))
+        from csf_mu.csf_mu.utils.vat_return import backfill_filing_period_types
+
+        return backfill_filing_period_types(self.company, self.from_date, self.to_date)
+
+    @frappe.whitelist()
     def pull_transactions(self):
         self.check_permission("write")
         result = engine.pull(self)
