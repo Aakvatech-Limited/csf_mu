@@ -1,0 +1,134 @@
+{
+ "doctype": "Sidebar",
+ "name": "CSF MU",
+ "title": "CSF MU",
+ "module": "CSF MU",
+ "app": "csf_mu",
+ "header_icon": "file-text",
+ "standard": 1,
+ "items": [
+  {
+   "doctype": "Sidebar Item",
+   "type": "Section Break",
+   "label": "Home",
+   "collapsible": 1,
+   "keep_closed": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "MRA Integration",
+   "link_type": "Workspace",
+   "link_to": "MRA Integration",
+   "is_default_module": 1
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Section Break",
+   "label": "VAT Operations",
+   "collapsible": 1,
+   "keep_closed": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "VAT Return Filings",
+   "link_type": "DocType",
+   "link_to": "VAT Return Filing",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "VAT Return",
+   "link_type": "Report",
+   "link_to": "VAT Return",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "VAT Return Dashboard",
+   "link_type": "Dashboard",
+   "link_to": "VAT Return",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Section Break",
+   "label": "MRA Operations",
+   "collapsible": 1,
+   "keep_closed": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "MRA Einvoice Log",
+   "link_type": "DocType",
+   "link_to": "MRA Einvoice Log",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "MRA Integration Monitor",
+   "link_type": "Report",
+   "link_to": "MRA Integration Monitor",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "MRA Integration Dashboard",
+   "link_type": "Dashboard",
+   "link_to": "MRA Integration",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Section Break",
+   "label": "Master Data",
+   "collapsible": 1,
+   "keep_closed": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "VAT Return Types",
+   "link_type": "DocType",
+   "link_to": "VAT Return Type",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "MRA Tax Code Map",
+   "link_type": "DocType",
+   "link_to": "MRA Tax Code Map",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Section Break",
+   "label": "Settings",
+   "collapsible": 1,
+   "keep_closed": 1
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "CSF MU Company Settings",
+   "link_type": "DocType",
+   "link_to": "CSF MU Company Settings",
+   "is_default_module": 0
+  },
+  {
+   "doctype": "Sidebar Item",
+   "type": "Link",
+   "label": "CSF MU Settings",
+   "link_type": "DocType",
+   "link_to": "CSF MU Settings",
+   "is_default_module": 0
+  }
+ ]
+}
