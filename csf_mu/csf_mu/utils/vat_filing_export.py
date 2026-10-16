@@ -105,7 +105,7 @@ def download_mns_annex(name: str):
     ])
     groups = defaultdict(lambda: {"value":0.0,"vat":0.0,"date":None,"party":None})
     for row in doc.sales_details:
-        if row.vat_return_type != "1.4":
+        if row.vat_return_type not in ("1.1", "1.2", "1.3", "1.4"):
             continue
         data = groups[row.source_invoice]
         data["value"] += flt(row.taxable_value)
@@ -114,16 +114,14 @@ def download_mns_annex(name: str):
         data["party"] = row.party
     for invoice, data in sorted(groups.items()):
         customer = frappe.get_doc("Customer", data["party"])
-        if not customer.get("mra_tan"):
+        if not (customer.get("mra_tan") or customer.get("mra_brn")):
             # The MNS annex lists identified VAT registrants; consumer
             # supplies remain in the return and aggregate sales breakdown.
             continue
-        if not customer.get("mra_brn"):
-            frappe.throw(f"Customer {customer.name} has TAN but no BRN; correct before export")
         writer.writerow([
-            customer.mra_tan, customer.customer_name,
+            customer.get("mra_tan") or "", customer.customer_name,
             round(data["value"]), round(data["vat"]),
-            getdate(data["date"]).strftime("%Y%m%d"), invoice, customer.mra_brn, "",
+            getdate(data["date"]).strftime("%Y%m%d"), invoice, customer.get("mra_brn") or "", "",
         ])
     _download(
         f"MNS_VAT_Annex_{filing_month}.csv",
