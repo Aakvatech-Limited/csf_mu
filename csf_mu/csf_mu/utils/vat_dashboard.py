@@ -1,7 +1,6 @@
 import frappe
 from frappe.utils import flt
 
-
 SALES_BOXES = ("1.1", "1.2", "1.3", "1.4", "3")
 PURCHASE_BOXES = ("6.1", "6.2", "6.3", "6.4", "6.5", "6.6", "7", "8.1", "8.2")
 
