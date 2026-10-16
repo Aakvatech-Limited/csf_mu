@@ -1,7 +1,6 @@
 import frappe
 from frappe.utils import cint
 
-
 VAT_RETURN_TYPES = (
 	("1.1", "Zero-rated supplies (Exports)", "Sales", None),
 	("1.2", "Zero-rated supplies other than exports", "Sales", None),
@@ -30,8 +29,16 @@ def ensure_vat_return_types():
 			doc.capital_goods_vat_return_type = capital_goods_type
 			doc.insert(ignore_permissions=True)
 			continue
-		if capital_goods_type and not frappe.db.get_value("VAT Return Type", box_number, "capital_goods_vat_return_type"):
-			frappe.db.set_value("VAT Return Type", box_number, "capital_goods_vat_return_type", capital_goods_type, update_modified=False)
+		if capital_goods_type and not frappe.db.get_value(
+			"VAT Return Type", box_number, "capital_goods_vat_return_type"
+		):
+			frappe.db.set_value(
+				"VAT Return Type",
+				box_number,
+				"capital_goods_vat_return_type",
+				capital_goods_type,
+				update_modified=False,
+			)
 
 
 def _get_item_tax_template_vat_return_type(item_tax_template):
@@ -67,7 +74,9 @@ def set_purchase_invoice_vat_return_types(doc, method=None):
 			is_fixed_asset = cint(frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0)
 		if not is_fixed_asset or row.vat_return_type != default_type:
 			continue
-		capital_goods_type = frappe.db.get_value("VAT Return Type", row.vat_return_type, "capital_goods_vat_return_type")
+		capital_goods_type = frappe.db.get_value(
+			"VAT Return Type", row.vat_return_type, "capital_goods_vat_return_type"
+		)
 		if capital_goods_type:
 			row.vat_return_type = capital_goods_type
 
@@ -90,8 +99,7 @@ def backfill_vat_return_types(company=None):
 		"sales": sales,
 		"purchases": purchases,
 		"updated": sales["updated"] + purchases["updated"],
-		"already_classified": sales["already_classified"]
-		+ purchases["already_classified"],
+		"already_classified": sales["already_classified"] + purchases["already_classified"],
 		"missing_item_tax_template": sales["missing_item_tax_template"]
 		+ purchases["missing_item_tax_template"],
 		"unmapped_item_tax_template": sales["unmapped_item_tax_template"]
@@ -175,17 +183,13 @@ def _backfill_invoice_items(
 			stats["missing_item_tax_template"] += 1
 			continue
 
-		vat_return_type = _get_item_tax_template_vat_return_type(
-			row.item_tax_template
-		)
+		vat_return_type = _get_item_tax_template_vat_return_type(row.item_tax_template)
 		if not vat_return_type:
 			stats["unmapped_item_tax_template"] += 1
 			continue
 
 		if apply_capital_goods and row.item_code:
-			is_fixed_asset = cint(
-				frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0
-			)
+			is_fixed_asset = cint(frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0)
 			if is_fixed_asset:
 				capital_goods_type = frappe.db.get_value(
 					"VAT Return Type",
@@ -211,3 +215,105 @@ def _backfill_invoice_items(
 
 	stats["invoices_updated"] = len(updated_invoices)
 	return stats
+
+
+def backfill_filing_period_types(company: str, from_date: str, to_date: str) -> dict:
+	"""Populate ONLY blank VAT Return Types on eligible items in the filing period.
+
+	Respect invoice-specific classifications and never mutate lines in an
+	already submitted VAT Return Filing. Prior-period purchase claim dates
+	count towards the period, even if their posting dates are earlier.
+	"""
+	from frappe.utils import getdate
+
+	if not company or not from_date or not to_date:
+		frappe.throw(frappe._("Company and filing period are required"))
+	if getdate(from_date) > getdate(to_date):
+		frappe.throw(frappe._("Invalid filing period"))
+
+	if not frappe.has_permission("VAT Return Filing", "write"):
+		frappe.throw(frappe._("VAT Return Filing write permission is required"))
+
+	summary = {
+		"sales_updated": 0,
+		"purchases_updated": 0,
+		"already_classified": 0,
+		"missing_item_tax_template": 0,
+		"unmapped_item_tax_template": 0,
+		"locked": 0,
+		"capital_goods": 0,
+		"affected_invoices": [],
+	}
+	cache = {}
+
+	for parent_type, child_type, purchase in (
+		("Sales Invoice", "Sales Invoice Item", False),
+		("Purchase Invoice", "Purchase Invoice Item", True),
+	):
+		Parent = frappe.qb.DocType(parent_type)
+		Child = frappe.qb.DocType(child_type)
+		query = (
+			frappe.qb.from_(Child)
+			.join(Parent)
+			.on(Child.parent == Parent.name)
+			.select(
+				Child.name,
+				Child.parent,
+				Child.item_code,
+				Child.item_tax_template,
+				Child.vat_return_type,
+			)
+			.where(Parent.company == company)
+			.where(Parent.docstatus == 1)
+		)
+		if purchase:
+			from pypika.functions import Coalesce
+
+			query = query.where(Parent.posting_date <= to_date).where(
+				Coalesce(Child.vat_claim_date, Parent.posting_date).between(from_date, to_date)
+			)
+		else:
+			query = query.where(Parent.posting_date.between(from_date, to_date))
+
+		affected = set()
+		for row in query.run(as_dict=True):
+			if row.vat_return_type:
+				summary["already_classified"] += 1
+				continue
+			if not row.item_tax_template:
+				summary["missing_item_tax_template"] += 1
+				continue
+			if row.item_tax_template not in cache:
+				cache[row.item_tax_template] = _get_item_tax_template_vat_return_type(row.item_tax_template)
+			category = cache[row.item_tax_template]
+			if not category:
+				summary["unmapped_item_tax_template"] += 1
+				continue
+			detail_type = "VAT Return Purchase Detail" if purchase else "VAT Return Sales Detail"
+			linked = frappe.get_all(detail_type, filters={"source_item": row.name}, pluck="parent")
+			if any(frappe.db.get_value("VAT Return Filing", name, "docstatus") == 1 for name in linked):
+				summary["locked"] += 1
+				continue
+			if (
+				purchase
+				and row.item_code
+				and cint(frappe.db.get_value("Item", row.item_code, "is_fixed_asset") or 0)
+			):
+				capital_type = frappe.db.get_value(
+					"VAT Return Type", category, "capital_goods_vat_return_type"
+				)
+				if capital_type:
+					category = capital_type
+					summary["capital_goods"] += 1
+			frappe.db.set_value(child_type, row.name, "vat_return_type", category, update_modified=True)
+			affected.add(row.parent)
+			summary["purchases_updated" if purchase else "sales_updated"] += 1
+		summary["affected_invoices"].extend(sorted(affected))
+		for invoice in affected:
+			frappe.get_doc(parent_type, invoice).add_comment(
+				"Info",
+				frappe._(
+					"VAT Return Type backfilled on blank invoice items for filing period {0} to {1}"
+				).format(from_date, to_date),
+			)
+	return summary

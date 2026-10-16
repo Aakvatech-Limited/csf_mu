@@ -30,9 +30,17 @@ jobs:
         with:
           node-version: 20
 
-      - uses: pre-commit/action@v3.0.1
+      - name: Pre-commit on changed files
+        shell: bash
         env:
-          # Report new security findings on PRs; manual runs still scan everything.
-          SEMGREP_BASELINE_REF: ${{ github.event.pull_request.base.sha || '' }}
-        with:
-          extra_args: ${{ github.event_name == 'pull_request' && format('--from-ref {0} --to-ref {1}', github.event.pull_request.base.sha, github.sha) || '--all-files' }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python -m pip install pre-commit
+          if [ -n "$BASE_SHA" ]; then
+            mapfile -t changed < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA"...HEAD)
+            if [ "${#changed[@]}" -gt 0 ]; then
+              pre-commit run --files "${changed[@]}"
+            fi
+          else
+            pre-commit run --all-files
+          fi

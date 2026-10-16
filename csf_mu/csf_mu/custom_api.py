@@ -6,7 +6,7 @@ from csf_mu.csf_mu.utils.vat_return import backfill_vat_return_types
 @frappe.whitelist()
 def backfill_vat_return_type(company):
 	if not company:
-		frappe.throw("Company is required")
+		frappe.throw(frappe._("Company is required"))
 
 	company_doc = frappe.get_doc("Company", company)
 	company_doc.check_permission("write")
@@ -16,112 +16,66 @@ def backfill_vat_return_type(company):
 
 @frappe.whitelist()
 def create_vat_return_filing(filters):
-	from csf_mu.csf_mu.report.vat_return.vat_return import (
-		execute,
-		get_period,
-		get_previous_vat_return_filing,
-	)
+	"""Compatibility endpoint: create a transaction-backed filing, not a report snapshot."""
+	from frappe.utils import add_months, get_first_day, get_last_day, today
 
 	filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
 	company = filters.get("company")
 	if not company:
-		frappe.throw("Company is required")
+		frappe.throw(frappe._("Company is required"))
 	if not frappe.has_permission("VAT Return Filing", ptype="create"):
-		frappe.throw("You do not have permission to create VAT Return Filing.")
+		frappe.throw(frappe._("Not permitted to create VAT Return Filing"))
 
-	from_date, to_date = get_period(frappe._dict(filters))
-	submitted = frappe.db.get_value(
-		"VAT Return Filing",
-		{
-			"company": company,
-			"from_date": from_date,
-			"to_date": to_date,
-			"docstatus": 1,
-		},
-		"name",
-	)
-	if submitted:
-		return {"name": submitted, "submitted": 1}
-
-	_, rows = execute(filters)
-	box_map = {row.get("box"): row for row in rows if row.get("box")}
-	draft = frappe.db.get_value(
-		"VAT Return Filing",
-		{
-			"company": company,
-			"from_date": from_date,
-			"to_date": to_date,
-			"docstatus": 0,
-		},
-		"name",
-	)
-	if draft:
-		doc = frappe.get_doc("VAT Return Filing", draft)
-		doc.check_permission("write")
+	span = filters.get("time_span") or "Last Month"
+	reference = today()
+	if span == "This Month":
+		start, end = get_first_day(reference), get_last_day(reference)
+	elif span == "Last Month":
+		reference = add_months(reference, -1)
+		start, end = get_first_day(reference), get_last_day(reference)
+	elif span == "Custom Period":
+		start, end = filters.get("from_date"), filters.get("to_date")
 	else:
-		doc = frappe.new_doc("VAT Return Filing")
+		frappe.throw(frappe._("Select This Month, Last Month or Custom Period"))
+	if not start or not end:
+		frappe.throw(frappe._("Taxable period dates are required"))
 
+	found = frappe.db.get_value(
+		"VAT Return Filing",
+		{"company": company, "from_date": start, "to_date": end, "docstatus": ["!=", 2]},
+		["name", "docstatus"],
+		as_dict=True,
+	)
+	if found:
+		return {"name": found.name, "submitted": int(found.docstatus == 1)}
+	doc = frappe.new_doc("VAT Return Filing")
 	doc.company = company
-	doc.from_date = from_date
-	doc.to_date = to_date
-	doc.currency = frappe.db.get_value("Company", company, "default_currency")
-	manual_b12 = filters.get("excess_vat_brought_forward")
-	previous = (
-		None
-		if manual_b12 not in (None, "")
-		else get_previous_vat_return_filing(company, from_date)
-	)
-	doc.box_12_excess_brought_forward = (
-		(box_map.get("12") or {}).get("vat_amount") or 0
-	)
-	doc.brought_forward_from = previous.name if previous else None
-	doc.box_16_excess_carried_forward = (
-		(box_map.get("16") or {}).get("vat_amount") or 0
-	)
-	doc.filters_json = frappe.as_json(filters)
-	doc.return_data_json = frappe.as_json(rows)
-	doc.set("lines", [])
-	for row in rows:
-		doc.append(
-			"lines",
-			{
-				"box": row.get("box"),
-				"description": row.get("description"),
-				"value_amount": row.get("value_amount"),
-				"vat_amount": row.get("vat_amount"),
-				"currency": row.get("currency"),
-			},
-		)
-
-	if doc.is_new():
-		doc.insert()
-	else:
-		doc.save()
+	doc.from_date = start
+	doc.to_date = end
+	doc.recovery_percentage = filters.get("proportion_allowable", 100)
+	doc.insert()
+	doc.pull_transactions()
 	return {"name": doc.name, "submitted": 0}
 
 
 @frappe.whitelist()
 def create_mra_item_tax_templates(company):
 	if not company:
-		frappe.throw("Company is required")
+		frappe.throw(frappe._("Company is required"))
 
 	company_doc = frappe.get_doc("Company", company)
 	abbr = company_doc.abbr or company_doc.name
 
 	tax_account = _get_default_vat_account(company)
 	if not tax_account:
-		frappe.throw(
-			"No VAT tax account found. Please create a VAT tax account for this company."
-		)
+		frappe.throw("No VAT tax account found. Please create a VAT tax account for this company.")
 
 	tax_templates = _get_mra_tax_templates(abbr)
 
 	created = []
 	for tmpl in tax_templates:
 		title = tmpl["title"]
-		template_name = frappe.db.get_value(
-			"Item Tax Template", {"title": title, "company": company}, "name"
-		)
+		template_name = frappe.db.get_value("Item Tax Template", {"title": title, "company": company}, "name")
 		if not template_name:
 			legacy_title = f"{title} - {abbr}"
 			template_name = frappe.db.get_value(
