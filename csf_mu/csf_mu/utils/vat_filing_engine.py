@@ -145,14 +145,14 @@ def _check_duplicate_claim(item_ids, current_filing):
 
 def pull(doc):
     if doc.docstatus:
-        frappe.throw("Only Draft VAT Return Filings can pull transactions.")
+        frappe.throw(frappe._("Only Draft VAT Return Filings can pull transactions."))
     if not doc.company or not doc.from_date or not doc.to_date:
-        frappe.throw("Company and taxable dates are required")
+        frappe.throw(frappe._("Company and taxable dates are required"))
     if getdate(doc.from_date) > getdate(doc.to_date):
-        frappe.throw("From Date cannot exceed To Date")
+        frappe.throw(frappe._("From Date cannot exceed To Date"))
     recovery = flt(doc.recovery_percentage)
     if not 0 <= recovery <= 100:
-        frappe.throw("Recovery percentage must be between 0 and 100")
+        frappe.throw(frappe._("Recovery percentage must be between 0 and 100"))
     sales, purchases = [], []
     for name in _invoice_names("Sales Invoice", doc.company, doc.from_date, doc.to_date):
         sales.extend(_source_rows(frappe.get_doc("Sales Invoice", name), False, doc.from_date, doc.to_date, recovery))
@@ -167,10 +167,10 @@ def pull(doc):
 
 def recalculate(doc, validating_submission=False):
     if doc.docstatus and not validating_submission:
-        frappe.throw("A submitted filing cannot be recalculated.")
+        frappe.throw(frappe._("A submitted filing cannot be recalculated."))
     pct = flt(doc.recovery_percentage)
     if pct < 0 or pct > 100:
-        frappe.throw("Recovery percentage must be between 0 and 100.")
+        frappe.throw(frappe._("Recovery percentage must be between 0 and 100."))
     box = defaultdict(float)
     vat = defaultdict(float)
     for row in doc.get("sales_details") or []:
@@ -197,21 +197,21 @@ def recalculate(doc, validating_submission=False):
     adjustments = defaultdict(float)
     for row in doc.get("adjustments") or []:
         if not row.reference or not row.reason:
-            frappe.throw("Adjustment requires a reference and reason")
+            frappe.throw(frappe._("Adjustment requires a reference and reason"))
         adjustments[row.mra_box] += flt(row.vat_amount)
     output = vat["1.4"] + adjustments["2"] + adjustments["4"]
     input_claim = vat["deductible"]
     previous = frappe.get_all("VAT Return Filing", filters={"company":doc.company,"docstatus":1,"to_date":["<",doc.from_date]},fields=["name","box_16_excess_carried_forward"],order_by="to_date desc",limit=1)
     opening = flt(doc.excess_brought_forward_manual) if doc.excess_brought_forward_manual else flt(previous[0].box_16_excess_carried_forward) if previous else 0
     if doc.excess_brought_forward_manual and not doc.opening_credit_reason:
-        frappe.throw("Opening VAT credit override requires a supporting reference")
+        frappe.throw(frappe._("Opening VAT credit override requires a supporting reference"))
     net = output - input_claim - opening + adjustments["13"]
     doc.output_vat, doc.input_vat = output, input_claim
     doc.box_12_excess_brought_forward = opening
     doc.brought_forward_from = None if doc.excess_brought_forward_manual else previous[0].name if previous else None
     repayment = adjustments["15.1"] + adjustments["15.2"]
     if repayment < 0 or repayment > max(0, -net):
-        frappe.throw("Repayment claim must not exceed available excess VAT")
+        frappe.throw(frappe._("Repayment claim must not exceed available excess VAT"))
     doc.box_16_excess_carried_forward = max(0, -net - repayment)
     doc.vat_payable = max(0, net) + adjustments["17"] + adjustments["18"]
     summaries = [
