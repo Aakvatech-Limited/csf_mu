@@ -122,7 +122,7 @@ def _invoice_names(parent, company, start, end, purchase=False):
 
 def _source_rows(invoice, purchase, from_date, to_date, recovery):
     if not purchase:
-    	_validate_sales_return_types(invoice)
+        _validate_sales_return_types(invoice)
     tax_by_item = _item_vat(invoice)
     result = []
     for item in invoice.items:
