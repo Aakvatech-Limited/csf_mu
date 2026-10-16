@@ -6,7 +6,7 @@ from csf_mu.csf_mu.utils.vat_return import backfill_vat_return_types
 @frappe.whitelist()
 def backfill_vat_return_type(company):
 	if not company:
-		frappe.throw("Company is required")
+		frappe.throw(frappe._("Company is required"))
 
 	company_doc = frappe.get_doc("Company", company)
 	company_doc.check_permission("write")
@@ -22,9 +22,9 @@ def create_vat_return_filing(filters):
     filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
     company = filters.get("company")
     if not company:
-        frappe.throw("Company is required")
+        frappe.throw(frappe._("Company is required"))
     if not frappe.has_permission("VAT Return Filing", ptype="create"):
-        frappe.throw("Not permitted to create VAT Return Filing")
+        frappe.throw(frappe._("Not permitted to create VAT Return Filing"))
 
     span = filters.get("time_span") or "Last Month"
     reference = today()
@@ -36,9 +36,9 @@ def create_vat_return_filing(filters):
     elif span == "Custom Period":
         start, end = filters.get("from_date"), filters.get("to_date")
     else:
-        frappe.throw("Select This Month, Last Month or Custom Period")
+        frappe.throw(frappe._("Select This Month, Last Month or Custom Period"))
     if not start or not end:
-        frappe.throw("Taxable period dates are required")
+        frappe.throw(frappe._("Taxable period dates are required"))
 
     found = frappe.db.get_value(
         "VAT Return Filing",
@@ -61,7 +61,7 @@ def create_vat_return_filing(filters):
 @frappe.whitelist()
 def create_mra_item_tax_templates(company):
 	if not company:
-		frappe.throw("Company is required")
+		frappe.throw(frappe._("Company is required"))
 
 	company_doc = frappe.get_doc("Company", company)
 	abbr = company_doc.abbr or company_doc.name
