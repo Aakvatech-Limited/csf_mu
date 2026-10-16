@@ -265,3 +265,40 @@ class TestVATReturnFiling(FrappeTestCase):
         })
         with self.assertRaisesRegex(frappe.ValidationError, "does not permit VAT recovery"):
             engine._source_rows(invoice, True, "2026-07-01", "2026-07-31", 100)
+
+    def test_opening_credit_populates_box12_without_transaction_pull(self):
+        filing = frappe._dict({
+            "company": "Test Company", "from_date": "2026-07-01",
+            "excess_brought_forward_manual": 25000,
+            "opening_credit_reason": "Migration credit per prior MRA return",
+        })
+        with patch.object(frappe, "get_all", return_value=[]):
+            opening = engine.sync_opening_credit(filing)
+        self.assertEqual(opening, 25000)
+        self.assertEqual(filing.box_12_excess_brought_forward, 25000)
+        self.assertIsNone(filing.brought_forward_from)
+
+    def test_opening_credit_requires_reference(self):
+        filing = frappe._dict({
+            "company": "Test Company", "from_date": "2026-07-01",
+            "excess_brought_forward_manual": 25000,
+            "opening_credit_reason": "",
+        })
+        with patch.object(frappe, "get_all", return_value=[]):
+            with self.assertRaisesRegex(frappe.ValidationError, "supporting reference"):
+                engine.sync_opening_credit(filing)
+
+    def test_no_manual_opening_uses_previous_submitted_box16(self):
+        filing = frappe._dict({
+            "company": "Test Company", "from_date": "2026-07-01",
+            "excess_brought_forward_manual": None,
+        })
+        previous = [frappe._dict({
+            "name": "VAT-FILING-2026-00001",
+            "box_16_excess_carried_forward": 17500,
+        })]
+        with patch.object(frappe, "get_all", return_value=previous):
+            opening = engine.sync_opening_credit(filing)
+        self.assertEqual(opening, 17500)
+        self.assertEqual(filing.box_12_excess_brought_forward, 17500)
+        self.assertEqual(filing.brought_forward_from, "VAT-FILING-2026-00001")
