@@ -55,7 +55,7 @@ def _item_vat(invoice):
 		if not details and abs(money(tax.base_tax_amount_after_discount_amount)) > 0.01:
 			frappe.throw(f"Missing item-wise VAT allocation on {invoice.name}; review tax row {tax.idx}")
 		for key, calculation in (details or {}).items():
-			if not isinstance(calculation, (list, tuple)) or len(calculation) < 2:
+			if not isinstance(calculation, list | tuple) or len(calculation) < 2:
 				frappe.throw(f"Unexpected item-wise VAT allocation on {invoice.name}: {key}")
 			if key not in grouped:
 				matches = [item for item in invoice.items if item.name == key]
