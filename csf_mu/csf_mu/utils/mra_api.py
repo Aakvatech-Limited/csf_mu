@@ -228,9 +228,9 @@ def transmit_invoice(payload_json, signed_hash, company, settings=None, settings
 
 	request_id = now_datetime().strftime("%Y%m%d%H%M%S")
 	request_datetime = _format_mra_datetime(now_datetime())
-	
+
 	encrypted_invoice = encrypt_invoice(payload_json, mra_key)
-	
+
 	request_payload = {
 		"requestId": request_id,
 		"requestDateTime": request_datetime,
