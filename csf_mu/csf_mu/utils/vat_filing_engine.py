@@ -321,7 +321,7 @@ def pull(doc):
     for name in _invoice_names("Sales Invoice", doc.company, doc.from_date, doc.to_date):
         sales.extend(_source_rows(frappe.get_doc("Sales Invoice", name), False, doc.from_date, doc.to_date, recovery, errors, tolerance=flt(tolerance), auto_allocate=bool(auto_allocate)))
     for name in _invoice_names("Purchase Invoice", doc.company, doc.from_date, doc.to_date, purchase=True):
-        purchases.extend(_source_rows(frappe.get_doc("Purchase Invoice", name), True, doc.from_date, doc.to_date, recovery, errors))
+        purchases.extend(_source_rows(frappe.get_doc("Purchase Invoice", name), True, doc.from_date, doc.to_date, recovery, errors, tolerance=flt(tolerance), auto_allocate=bool(auto_allocate)))
     _check_duplicate_claim([row["source_item"] for row in purchases], doc.name, errors)
     if errors:
         # Do not mutate the filing or persist partial snapshots on validation failure.
