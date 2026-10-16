@@ -1,6 +1,5 @@
 import frappe
 
-
 SETTINGS_DOCTYPE = "CSF MU Settings"
 SETTINGS_DETAIL_DOCTYPE = "CSF MU Settings Detail"
 SETTINGS_SINGLE_NAME = "CSF MU Settings"
@@ -42,10 +41,7 @@ def get_company_mra_settings(company, throw=True, for_update=False):
 
 	if not row_name:
 		if throw:
-			frappe.throw(
-				f"CSF MU Settings Detail not configured for company: {company}."
-			)
+			frappe.throw(f"CSF MU Settings Detail not configured for company: {company}.")
 		return None
 
 	return frappe.get_doc(SETTINGS_DETAIL_DOCTYPE, row_name)
-
