@@ -148,8 +148,6 @@ def execute():
 				"label": "VAT Return Type",
 				"options": "VAT Return Type",
 			},
-<<<<<<< HEAD
-=======
 			{
 				"allow_on_submit": 1,
 				"fieldname": "vat_claim_date",
@@ -159,18 +157,17 @@ def execute():
 				"label": "VAT Claim Date",
 				"description": "Taxable period date in which this purchase input VAT is claimed. Defaults to the Purchase Invoice posting date.",
 			},
-            {
-                "allow_on_submit": 1,
-                "fieldname": "vat_recovery_treatment",
-                "fieldtype": "Select",
-                "in_list_view": 1,
-                "insert_after": "vat_claim_date",
-                "label": "VAT Recovery Treatment",
-                "options": "Full\nShared\nNone",
-                "default": "Shared",
-                "description": "Full 100 percent; Shared apportionment; None disallowed.",
-            },
->>>>>>> c9ae39a (feat(vat): implement filing phase one with claim-period snapshots)
+			{
+				"allow_on_submit": 1,
+				"fieldname": "vat_recovery_treatment",
+				"fieldtype": "Select",
+				"in_list_view": 1,
+				"insert_after": "vat_claim_date",
+				"label": "VAT Recovery Treatment",
+				"options": "Full\nShared\nNone",
+				"default": "Shared",
+				"description": "Full 100 percent; Shared apportionment; None disallowed.",
+			},
 		],
 		"Sales Invoice": [
 			{
