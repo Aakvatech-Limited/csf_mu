@@ -1,0 +1,18 @@
+{
+ "doctype": "Dock",
+ "name": "csf_mu",
+ "app": "csf_mu",
+ "user": "",
+ "standard": 1,
+ "items": [
+  {
+   "doctype": "Dock Item",
+   "link_type": "Sidebar",
+   "link_to": "CSF MU",
+   "icon": "file-text",
+   "title": "CSF MU",
+   "added": 1,
+   "hidden": 0
+  }
+ ]
+}
