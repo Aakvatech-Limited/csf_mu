@@ -1,8 +1,7 @@
+import erpnext
 import frappe
 from frappe import _
 from frappe.utils import flt
-
-import erpnext
 
 
 def execute(filters=None):
@@ -86,7 +85,12 @@ def get_data(filters, currency):
 	rate_expr = f"COALESCE(e.`{rate_field}`, 0)" if rate_field else "0"
 	rate_group_by = f", e.`{rate_field}`" if rate_field else ""
 
-	conditions = ["ss.docstatus = 1", "ss.company = %(company)s", "ss.start_date >= %(from_date)s", "ss.end_date <= %(to_date)s"]
+	conditions = [
+		"ss.docstatus = 1",
+		"ss.company = %(company)s",
+		"ss.start_date >= %(from_date)s",
+		"ss.end_date <= %(to_date)s",
+	]
 
 	if filters.get("employee"):
 		conditions.append("ss.employee = %(employee)s")
