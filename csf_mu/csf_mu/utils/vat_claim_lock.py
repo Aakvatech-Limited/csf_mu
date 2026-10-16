@@ -54,3 +54,25 @@ def before_cancel_invoice(doc, method=None):
         frappe.throw(
             f"Cannot cancel an invoice included in submitted VAT Return Filing {filed}. Cancel/amend the filing first."
         )
+
+
+def validate_sales_invoice_claims(doc, method=None):
+    """Prevent changing VAT classifications of sales lines already filed."""
+    previous = doc.get_doc_before_save()
+    if not previous:
+        return
+    previous_rows = {row.name: row for row in previous.items}
+    for row in doc.items:
+        prior = previous_rows.get(row.name)
+        if not prior:
+            continue
+        if (
+            row.get("vat_return_type") != prior.get("vat_return_type")
+            or row.get("base_net_amount") != prior.get("base_net_amount")
+            or row.get("item_tax_template") != prior.get("item_tax_template")
+        ):
+            filed = _linked_filing(doc.doctype, source_item=row.name)
+            if filed:
+                frappe.throw(
+                    f"Sales item {row.idx} is already included in submitted VAT Return Filing {filed}."
+                )
