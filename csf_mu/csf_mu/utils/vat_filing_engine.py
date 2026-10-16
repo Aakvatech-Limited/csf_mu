@@ -260,6 +260,38 @@ def pull(doc):
     return {"sales_items": len(sales), "purchase_items": len(purchases)}
 
 
+def sync_opening_credit(doc):
+    """Keep Box 12 aligned with the override or last submitted filing.
+
+    Called on draft save as well as recalculation, so entering an opening
+    credit does not depend on a successful transaction pull.
+    """
+    if not doc.company or not doc.from_date:
+        return 0.0
+    previous = frappe.get_all(
+        "VAT Return Filing",
+        filters={
+            "company": doc.company,
+            "docstatus": 1,
+            "to_date": ["<", doc.from_date],
+        },
+        fields=["name", "box_16_excess_carried_forward"],
+        order_by="to_date desc",
+        limit=1,
+    )
+    manual = doc.get("excess_brought_forward_manual")
+    if manual is not None and flt(manual) != 0:
+        if not doc.get("opening_credit_reason"):
+            frappe.throw("Opening VAT credit override requires a supporting reference")
+        opening = flt(manual)
+        doc.brought_forward_from = None
+    else:
+        opening = flt(previous[0].box_16_excess_carried_forward) if previous else 0
+        doc.brought_forward_from = previous[0].name if previous else None
+    doc.box_12_excess_brought_forward = opening
+    return opening
+
+
 def recalculate(doc, validating_submission=False):
     if doc.docstatus and not validating_submission:
         frappe.throw("A submitted filing cannot be recalculated.")
@@ -291,14 +323,9 @@ def recalculate(doc, validating_submission=False):
         adjustments[row.mra_box] += flt(row.vat_amount)
     output = vat["1.4"] + adjustments["2"] + adjustments["4"]
     input_claim = vat["deductible"]
-    previous = frappe.get_all("VAT Return Filing", filters={"company":doc.company,"docstatus":1,"to_date":["<",doc.from_date]},fields=["name","box_16_excess_carried_forward"],order_by="to_date desc",limit=1)
-    opening = flt(doc.excess_brought_forward_manual) if doc.excess_brought_forward_manual else flt(previous[0].box_16_excess_carried_forward) if previous else 0
-    if doc.excess_brought_forward_manual and not doc.opening_credit_reason:
-        frappe.throw("Opening VAT credit override requires a supporting reference")
+    opening = sync_opening_credit(doc)
     net = output - input_claim - opening + adjustments["13"]
     doc.output_vat, doc.input_vat = output, input_claim
-    doc.box_12_excess_brought_forward = opening
-    doc.brought_forward_from = None if doc.excess_brought_forward_manual else previous[0].name if previous else None
     doc.box_16_excess_carried_forward = max(0, -net)
     doc.vat_payable = max(0, net) + adjustments["17"] + adjustments["18"]
     summaries = [
