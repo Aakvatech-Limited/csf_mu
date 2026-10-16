@@ -3,7 +3,7 @@ frappe.ui.form.on("VAT Return Filing", {
         if (frm.doc.docstatus === 0 && !frm.is_new()) {
             frm.add_custom_button(__("Pull Transactions"), () => {
                 frappe.confirm(
-                    __("Refresh source transactions for this draft filing? The sales and purchase detail snapshots will be replaced; manual adjustment rows remain."),
+                    __("Refresh source transactions for this draft filing? The sales and purchase detail snapshots will be replaced, and manually entered values in Boxes 12 and 16 will be reset to calculated amounts. Manual adjustment rows remain."),
                     () => frm.call("pull_transactions").then(r => {
                         frm.reload_doc();
                         if (r.message) {
@@ -18,7 +18,10 @@ frappe.ui.form.on("VAT Return Filing", {
                 );
             }, __("VAT Filing"));
             frm.add_custom_button(__("Recalculate"), () => {
-                frm.call("recalculate").then(() => frm.reload_doc());
+                frappe.confirm(
+                    __("Recalculate this VAT return? Manually entered values in Boxes 12 and 16 will be replaced by calculated amounts."),
+                    () => frm.call("recalculate").then(() => frm.reload_doc())
+                );
             }, __("VAT Filing"));
         }
         if (frm.is_new()) return;
