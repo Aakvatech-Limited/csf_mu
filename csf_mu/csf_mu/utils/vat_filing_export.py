@@ -32,14 +32,15 @@ def download_excel(name: str):
     summary.append(["Filing date", str(doc.filing_date or ""), "Recovery %", flt(doc.recovery_percentage)])
     summary.append(["MRA reference", doc.mra_acknowledgement_reference or "", "Status", doc.filing_status or "Prepared"])
     summary.append([])
-    summary.append(["MRA box", "Description", "Value (MUR)", "VAT (MUR)"])
+    currency = doc.currency or frappe.db.get_value("Company", doc.company, "default_currency")
+    summary.append(["MRA box", "Description", f"Value ({currency})", f"VAT ({currency})"])
     for row in doc.lines:
         summary.append([row.box, row.description, flt(row.value_amount), flt(row.vat_amount)])
     details = book.create_sheet("Notes - Breakdown")
     details.append([
         "Source", "Invoice", "Source item", "Party", "Invoice date", "Posting date",
-        "VAT claim date", "MRA box", "Item", "Taxable value (MUR)",
-        "VAT (MUR)", "Recovery treatment", "Recoverable VAT (MUR)", "Notes",
+        "VAT claim date", "MRA box", "Item", f"Taxable value ({currency})",
+        f"VAT ({currency})", "Recovery treatment", f"Recoverable VAT ({currency})", "Notes",
     ])
     for row in list(doc.sales_details) + list(doc.purchase_details):
         details.append([
@@ -50,7 +51,7 @@ def download_excel(name: str):
         ])
     details.append([])
     details.append(["ADJUSTMENTS"])
-    details.append(["MRA box", "Reference", "Reason", "VAT amount (MUR)"])
+    details.append(["MRA box", "Reference", "Reason", f"VAT amount ({currency})"])
     for row in doc.adjustments:
         details.append([row.mra_box, row.reference, row.reason, flt(row.vat_amount)])
     for sheet in book:
