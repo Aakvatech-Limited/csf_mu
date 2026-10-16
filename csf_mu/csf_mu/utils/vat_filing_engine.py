@@ -35,73 +35,89 @@ def _vat_tax_rows(invoice):
     return rows
 
 
-def _validate_sales_return_types(invoice):
-	"""Invoice-line VAT Return Type overrides the Item Tax Template classification."""
-	for item in invoice.items:
-		box = item.get("vat_return_type")
-		if box not in SALES_BOXES:
-			frappe.throw(
-				frappe._("Missing or invalid VAT Return Type for Sales Invoice {0}, row {1} ({2}). Allowed sales types: {3}").format(
-					invoice.name, item.idx, item.get("item_name") or item.get("item_code") or item.name,
-					", ".join(SALES_BOXES),
-				)
-			)
+def _validate_sales_return_types(invoice, errors=None):
+    """Validate each sales row, reporting all invalid classifications."""
+    problems = []
+    for item in invoice.items:
+        box = item.get("vat_return_type")
+        if box not in SALES_BOXES:
+            problems.append(
+                frappe._("Row {0} ({1}): missing or invalid VAT Return Type ({2}). Allowed sales types: {3}").format(
+                    item.idx, item.get("item_name") or item.get("item_code") or item.name,
+                    box or "blank", ", ".join(SALES_BOXES),
+                )
+            )
+    if errors is not None:
+        errors.extend(problems)
+    elif problems:
+        frappe.throw("\n".join(problems))
 
 
-def _item_vat(invoice):
-	"""Allocate actual invoice VAT by item code, item name or child row identifier.
+def _item_vat(invoice, errors=None):
+    """Allocate invoice VAT, collecting tax-detail errors when requested."""
+    by_code = defaultdict(list)
+    by_name = defaultdict(list)
+    by_row = {}
+    for item in invoice.items:
+        if item.get("item_code"):
+            by_code[item.item_code].append(item)
+        if item.get("item_name"):
+            by_name[item.item_name].append(item)
+        by_row[item.name] = item
+    totals = defaultdict(float)
+    problems = []
+    tax_rows = _vat_tax_rows(invoice)
+    for tax in tax_rows:
+        details = tax.get("item_wise_tax_detail")
+        try:
+            details = frappe.parse_json(details) if details else {}
+        except (ValueError, TypeError):
+            problems.append(f"Tax row {tax.idx}: invalid item-wise VAT details")
+            continue
+        if not isinstance(details, dict):
+            problems.append(f"Tax row {tax.idx}: item-wise VAT details must be a mapping")
+            continue
+        if not details and abs(money(tax.base_tax_amount_after_discount_amount)) > 0.01:
+            problems.append(f"Tax row {tax.idx}: missing item-wise VAT allocation")
+            continue
+        for key, calculation in details.items():
+            if not isinstance(calculation, (list, tuple)) or len(calculation) < 2:
+                problems.append(f"Tax row {tax.idx}, item {key}: unexpected VAT allocation")
+                continue
+            if key in by_row:
+                pool = [by_row[key]]
+            else:
+                code_matches = by_code.get(key, [])
+                name_matches = by_name.get(key, [])
+                if code_matches and name_matches and {row.name for row in code_matches} != {row.name for row in name_matches}:
+                    problems.append(f"Tax row {tax.idx}: ambiguous VAT item {key}; check Item Code and Item Name")
+                    continue
+                pool = code_matches or name_matches
+            if not pool:
+                problems.append(f"Tax row {tax.idx}: unmatched VAT item {key}")
+                continue
+            try:
+                amount = money(calculation[1])
+            except (ValueError, TypeError):
+                problems.append(f"Tax row {tax.idx}, item {key}: invalid VAT amount")
+                continue
+            total = sum(abs(money(item.base_net_amount)) for item in pool)
+            if not total and abs(amount) > 0.01:
+                problems.append(f"Tax row {tax.idx}, item {key}: zero net value with VAT")
+                continue
+            vat = amount * flt(invoice.conversion_rate or 1)
+            for item in pool:
+                totals[item.name] += vat * (abs(money(item.base_net_amount)) / total if total else 0)
+    expected = sum(money(tax.base_tax_amount_after_discount_amount) for tax in tax_rows)
+    actual = sum(totals.values())
+    if not problems and abs(expected - actual) > max(0.03, 0.01 * len(invoice.items)):
+        problems.append(f"VAT tax detail does not reconcile: {actual} vs {expected}")
+    if errors is not None:
+        errors.extend(problems)
+    elif problems:
+        frappe.throw("\n".join(problems))
+    return totals
 
-	The invoice-line VAT Return Type is authoritative for MRA categorization.
-	Tax breakdown keys are used only to allocate the tax amount. Duplicate
-	identifiers are apportioned by absolute net value; ambiguous identifiers
-	that refer to different rows through code/name matching must be reviewed.
-	"""
-	by_code = defaultdict(list)
-	by_name = defaultdict(list)
-	by_row = {}
-	for item in invoice.items:
-		if item.get("item_code"):
-			by_code[item.item_code].append(item)
-		if item.get("item_name"):
-			by_name[item.item_name].append(item)
-		by_row[item.name] = item
-	totals = defaultdict(float)
-	tax_rows = _vat_tax_rows(invoice)
-	for tax in tax_rows:
-		details = tax.get("item_wise_tax_detail")
-		try:
-			details = frappe.parse_json(details) if details else {}
-		except (ValueError, TypeError):
-			frappe.throw(f"Invalid item-wise VAT details on {invoice.name}")
-		if not details and abs(money(tax.base_tax_amount_after_discount_amount)) > 0.01:
-			frappe.throw(f"Missing item-wise VAT allocation on {invoice.name}; review tax row {tax.idx}")
-		for key, calculation in (details or {}).items():
-			if not isinstance(calculation, list | tuple) or len(calculation) < 2:
-				frappe.throw(f"Unexpected item-wise VAT allocation on {invoice.name}: {key}")
-			if key in by_row:
-				pool = [by_row[key]]
-			else:
-				code_matches = by_code.get(key, [])
-				name_matches = by_name.get(key, [])
-				if code_matches and name_matches and {
-					row.name for row in code_matches
-				} != {row.name for row in name_matches}:
-					frappe.throw(f"Ambiguous VAT item {key} in {invoice.name}; check Item Code and Item Name")
-				pool = code_matches or name_matches
-			if not pool:
-				frappe.throw(f"Unmatched VAT item {key} in {invoice.name}")
-			total = sum(abs(money(item.base_net_amount)) for item in pool)
-			if not total and abs(money(calculation[1])) > 0.01:
-				frappe.throw(f"Zero net value with VAT in {invoice.name}")
-			# Item-wise tax detail is in transaction currency; convert to company currency.
-			vat = money(calculation[1]) * flt(invoice.conversion_rate or 1)
-			for item in pool:
-				totals[item.name] += vat * (abs(money(item.base_net_amount)) / total if total else 0)
-	expected = sum(money(tax.base_tax_amount_after_discount_amount) for tax in tax_rows)
-	actual = sum(totals.values())
-	if abs(expected - actual) > max(0.03, 0.01 * len(invoice.items)):
-		frappe.throw(f"VAT tax detail does not reconcile for {invoice.name}: {actual} vs {expected}")
-	return totals
 
 def _invoice_names(parent, company, start, end, purchase=False):
     P = frappe.qb.DocType(parent)
@@ -120,10 +136,11 @@ def _invoice_names(parent, company, start, end, purchase=False):
     return [row.name for row in q.run(as_dict=True)]
 
 
-def _source_rows(invoice, purchase, from_date, to_date, recovery):
+def _source_rows(invoice, purchase, from_date, to_date, recovery, errors=None):
+    problems = []
     if not purchase:
-        _validate_sales_return_types(invoice)
-    tax_by_item = _item_vat(invoice)
+        _validate_sales_return_types(invoice, problems)
+    tax_by_item = _item_vat(invoice, problems)
     result = []
     for item in invoice.items:
         claim = item.get("vat_claim_date") or invoice.posting_date
@@ -131,12 +148,15 @@ def _source_rows(invoice, purchase, from_date, to_date, recovery):
             continue
         box = item.get("vat_return_type")
         permitted = PURCHASE_BOXES if purchase else SALES_BOXES
-        if not box or box not in permitted:
-            frappe.throw(f"Invalid or missing VAT Return Type for {invoice.name} item {item.idx}")
+        if box not in permitted:
+            if purchase:
+                problems.append(f"Row {item.idx}: invalid or missing VAT Return Type ({box or 'blank'})")
+            continue
         value = money(item.base_net_amount)
         vat = money(tax_by_item.get(item.name, 0))
         if box not in ((*VAT_PURCHASE_BOXES, "7") if purchase else ("1.4",)) and abs(vat) > 0.03:
-            frappe.throw(f"VAT on an incompatible category ({box}): {invoice.name} item {item.idx}")
+            problems.append(f"Row {item.idx}: VAT on incompatible category ({box})")
+            continue
         treatment = ((item.get("vat_recovery_treatment") or "Shared") if box in VAT_PURCHASE_BOXES else "None") if purchase else ""
         result.append({
             "source_doctype": invoice.doctype,
@@ -154,10 +174,14 @@ def _source_rows(invoice, purchase, from_date, to_date, recovery):
             "recoverable_vat": (vat if treatment == "Full" else vat * recovery / 100 if treatment == "Shared" else 0) if purchase else 0,
             "notes": "Prior accounting period" if purchase and getdate(invoice.posting_date) < getdate(from_date) else "",
         })
-    return result
+    if errors is not None:
+        errors.extend(f"{invoice.doctype} {invoice.name}: {problem}" for problem in problems)
+    elif problems:
+        frappe.throw("\n".join(problems))
+    return [] if problems else result
 
 
-def _check_duplicate_claim(item_ids, current_filing):
+def _check_duplicate_claim(item_ids, current_filing, errors=None):
     if not item_ids:
         return
     duplicates = frappe.get_all(
@@ -167,8 +191,14 @@ def _check_duplicate_claim(item_ids, current_filing):
         limit_page_length=0,
     )
     filed = [d for d in duplicates if frappe.db.get_value("VAT Return Filing", d.parent, "docstatus") == 1]
-    if filed:
-        frappe.throw(f"Purchase item already claimed in submitted filing {filed[0].parent} ({filed[0].source_item})")
+    problems = [
+        f"Purchase item {d.source_item} already claimed in submitted filing {d.parent}"
+        for d in filed
+    ]
+    if errors is not None:
+        errors.extend(problems)
+    elif problems:
+        frappe.throw(problems[0])
 
 
 def pull(doc):
@@ -181,12 +211,23 @@ def pull(doc):
     recovery = flt(doc.recovery_percentage)
     if not 0 <= recovery <= 100:
         frappe.throw("Recovery percentage must be between 0 and 100")
-    sales, purchases = [], []
+
+    sales, purchases, errors = [], [], []
     for name in _invoice_names("Sales Invoice", doc.company, doc.from_date, doc.to_date):
-        sales.extend(_source_rows(frappe.get_doc("Sales Invoice", name), False, doc.from_date, doc.to_date, recovery))
+        sales.extend(_source_rows(frappe.get_doc("Sales Invoice", name), False, doc.from_date, doc.to_date, recovery, errors))
     for name in _invoice_names("Purchase Invoice", doc.company, doc.from_date, doc.to_date, purchase=True):
-        purchases.extend(_source_rows(frappe.get_doc("Purchase Invoice", name), True, doc.from_date, doc.to_date, recovery))
-    _check_duplicate_claim([row["source_item"] for row in purchases], doc.name)
+        purchases.extend(_source_rows(frappe.get_doc("Purchase Invoice", name), True, doc.from_date, doc.to_date, recovery, errors))
+    _check_duplicate_claim([row["source_item"] for row in purchases], doc.name, errors)
+    if errors:
+        # Do not mutate the filing or persist partial snapshots on validation failure.
+        from html import escape
+
+        details = "".join(f"<li>{escape(str(error))}</li>" for error in errors)
+        frappe.throw(
+            f"{len(errors)} VAT validation error(s) found. No transactions were pulled."
+            f"<div style='max-height:55vh;overflow:auto'><ol>{details}</ol></div>",
+            title="VAT Transaction Validation Failed",
+        )
     doc.set("sales_details", sorted(sales, key=lambda d: (d["source_invoice"], d["source_item"])))
     doc.set("purchase_details", sorted(purchases, key=lambda d: (d["source_invoice"], d["source_item"])))
     recalculate(doc)
