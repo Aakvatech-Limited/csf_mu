@@ -244,8 +244,8 @@ def execute():
 				"label": "MRA QR Code",
 				"no_copy": 1,
 				"read_only": 1,
-			}
-		]
+			},
+		],
 	}
 
 	create_custom_fields(fields, ignore_validate=True)
