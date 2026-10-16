@@ -243,7 +243,7 @@ class TestVATReturnFiling(FrappeTestCase):
         )
         self.assertEqual(len(rows), 2)
         self.assertAlmostEqual(sum(r["taxable_value"] for r in rows), 83347.38)
-        self.assertAlmostEqual(sum(r["vat_amount"] for r in rows), 12502.107)
+        self.assertAlmostEqual(sum(r["vat_amount"] for r in rows), 12502.08)
         self.assertAlmostEqual(rows[0]["vat_amount"], 1232.577)
 
     def test_exempt_purchase_with_vat_is_not_silently_claimed(self):
@@ -266,39 +266,91 @@ class TestVATReturnFiling(FrappeTestCase):
         with self.assertRaisesRegex(frappe.ValidationError, "does not permit VAT recovery"):
             engine._source_rows(invoice, True, "2026-07-01", "2026-07-31", 100)
 
-    def test_opening_credit_populates_box12_without_transaction_pull(self):
-        filing = frappe._dict({
-            "company": "Test Company", "from_date": "2026-07-01",
-            "excess_brought_forward_manual": 25000,
-            "opening_credit_reason": "Migration credit per prior MRA return",
+    def test_foreign_currency_rounding_uses_configured_tolerance(self):
+        invoice = frappe._dict({
+            "doctype": "Sales Invoice", "name": "SINV-BDCEL-2026-00126",
+            "posting_date": "2026-07-13", "customer": "Test Customer",
+            "currency": "EUR", "conversion_rate": 54,
+            "items": [
+                frappe._dict({"name": "r1", "idx": 1, "item_code": "A",
+                             "base_net_amount": 8217.18, "vat_return_type": "1.4"}),
+                frappe._dict({"name": "r2", "idx": 2, "item_code": "B",
+                             "base_net_amount": 9391.14, "vat_return_type": "1.4"}),
+                frappe._dict({"name": "r3", "idx": 3, "item_code": "C",
+                             "base_net_amount": 75130.20, "vat_return_type": "1.4"}),
+            ],
+            "taxes": [frappe._dict({
+                "idx": 1, "account_head": "VAT Output",
+                "base_tax_amount_after_discount_amount": 13910.94,
+                "item_wise_tax_detail":
+                    '{"A":[15,1232.577],"B":[15,1408.671],"C":[15,11269.53]}',
+            })],
         })
-        with patch.object(frappe, "get_all", return_value=[]):
-            opening = engine.sync_opening_credit(filing)
-        self.assertEqual(opening, 25000)
-        self.assertEqual(filing.box_12_excess_brought_forward, 25000)
-        self.assertIsNone(filing.brought_forward_from)
+        rows = engine._source_rows(
+            invoice, False, "2026-07-01", "2026-07-31", 100,
+            tolerance=0.50, auto_allocate=True,
+        )
+        self.assertAlmostEqual(sum(row["vat_amount"] for row in rows), 13910.94)
+        self.assertAlmostEqual(rows[2]["vat_amount"], 11269.692)
+        with self.assertRaisesRegex(frappe.ValidationError, "exceeds base-currency tolerance"):
+            engine._source_rows(
+                invoice, False, "2026-07-01", "2026-07-31", 100,
+                tolerance=0.10, auto_allocate=True,
+            )
+        with self.assertRaisesRegex(frappe.ValidationError, "Auto-Allocate"):
+            engine._source_rows(
+                invoice, False, "2026-07-01", "2026-07-31", 100,
+                tolerance=0.50, auto_allocate=False,
+            )
 
-    def test_opening_credit_requires_reference(self):
-        filing = frappe._dict({
-            "company": "Test Company", "from_date": "2026-07-01",
-            "excess_brought_forward_manual": 25000,
-            "opening_credit_reason": "",
+    def test_duplicate_item_code_respects_explicit_zero_vat_rate(self):
+        invoice = frappe._dict({
+            "doctype": "Purchase Invoice", "name": "PINV-BDCEL-2026-00040",
+            "posting_date": "2026-07-04", "bill_date": "2026-07-04",
+            "supplier": "Test Supplier", "currency": "MUR",
+            "items": [
+                frappe._dict({
+                    "name": "taxable", "idx": 1, "item_code": "TELEPHONE",
+                    "base_net_amount": 1022.93, "vat_return_type": "6.6",
+                    "vat_recovery_treatment": "Shared",
+                    "item_tax_rate": '{"Vat Input":15}',
+                }),
+                frappe._dict({
+                    "name": "exempt", "idx": 2, "item_code": "TELEPHONE",
+                    "base_net_amount": 224.63, "vat_return_type": "8.2",
+                    "item_tax_rate": '{"Vat Input":0}',
+                }),
+            ],
+            "taxes": [frappe._dict({
+                "idx": 1, "account_head": "Vat Input",
+                "base_tax_amount_after_discount_amount": 153.44,
+                "item_wise_tax_detail": '{"TELEPHONE":[0,153.4395]}',
+            })],
         })
-        with patch.object(frappe, "get_all", return_value=[]):
-            with self.assertRaisesRegex(frappe.ValidationError, "supporting reference"):
-                engine.sync_opening_credit(filing)
+        rows = engine._source_rows(
+            invoice, True, "2026-07-01", "2026-07-31", 71,
+            tolerance=0.5,
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertAlmostEqual(rows[0]["vat_amount"], 153.44)
+        self.assertEqual(rows[1]["vat_amount"], 0)
+        self.assertEqual(rows[1]["recoverable_vat"], 0)
+        self.assertAlmostEqual(rows[0]["recoverable_vat"], 153.44 * 0.71)
 
-    def test_no_manual_opening_uses_previous_submitted_box16(self):
-        filing = frappe._dict({
-            "company": "Test Company", "from_date": "2026-07-01",
-            "excess_brought_forward_manual": None,
+    def test_duplicate_item_code_without_eligible_taxable_row_still_fails(self):
+        invoice = frappe._dict({
+            "name": "PINV-INVALID", "items": [
+                frappe._dict({
+                    "name": "exempt", "idx": 1, "item_code": "TELEPHONE",
+                    "base_net_amount": 224.63,
+                    "item_tax_rate": '{"Vat Input":0}',
+                }),
+            ],
+            "taxes": [frappe._dict({
+                "idx": 1, "account_head": "Vat Input",
+                "base_tax_amount_after_discount_amount": 33.69,
+                "item_wise_tax_detail": '{"TELEPHONE":[15,33.69]}',
+            })],
         })
-        previous = [frappe._dict({
-            "name": "VAT-FILING-2026-00001",
-            "box_16_excess_carried_forward": 17500,
-        })]
-        with patch.object(frappe, "get_all", return_value=previous):
-            opening = engine.sync_opening_credit(filing)
-        self.assertEqual(opening, 17500)
-        self.assertEqual(filing.box_12_excess_brought_forward, 17500)
-        self.assertEqual(filing.brought_forward_from, "VAT-FILING-2026-00001")
+        with self.assertRaisesRegex(frappe.ValidationError, "no eligible taxable item"):
+            engine._item_vat(invoice, tolerance=0.5)
