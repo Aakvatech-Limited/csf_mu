@@ -12,9 +12,9 @@ class VATReturnFiling(Document):
         if self.from_date:
             self.filing_month = getdate(self.from_date).strftime("%Y-%m")
         if getdate(self.from_date) > getdate(self.to_date):
-            frappe.throw("From Date cannot be after To Date.")
+            frappe.throw(frappe._("From Date cannot be after To Date."))
         if not 0 <= float(self.recovery_percentage or 0) <= 100:
-            frappe.throw("Input VAT recovery percentage must be between 0 and 100")
+            frappe.throw(frappe._("Input VAT recovery percentage must be between 0 and 100"))
 
     def before_submit(self):
         overlap = frappe.get_all(
@@ -32,7 +32,7 @@ class VATReturnFiling(Document):
         if overlap:
             frappe.throw(f"Submitted VAT Return Filing {overlap[0]} overlaps this taxable period.")
         if not self.lines:
-            frappe.throw("Pull Transactions before submitting a VAT return")
+            frappe.throw(frappe._("Pull Transactions before submitting a VAT return"))
         engine._check_duplicate_claim([r.source_item for r in self.purchase_details], self.name)
         self._validate_completeness()
         self._validate_sources()
@@ -57,7 +57,7 @@ class VATReturnFiling(Document):
         saved_sales = {row.source_item for row in self.sales_details}
         saved_purchases = {row.source_item for row in self.purchase_details}
         if expected_sales != saved_sales or expected_purchases != saved_purchases:
-            frappe.throw("The filing details do not match eligible source transactions. Pull Transactions again.")
+            frappe.throw(frappe._("The filing details do not match eligible source transactions. Pull Transactions again."))
 
     def _validate_sources(self):
         for fieldname, doctype in (
@@ -121,4 +121,4 @@ class VATReturnFiling(Document):
     def on_update_after_submit(self):
         # Frappe enforces allow_on_submit on acknowledgement/status fields.
         if self.filing_status in ("Filed", "Acknowledged") and not self.filing_date:
-            frappe.throw("Filing date is required when marking a return filed")
+            frappe.throw(frappe._("Filing date is required when marking a return filed"))
