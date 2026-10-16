@@ -35,15 +35,36 @@ def _vat_tax_rows(invoice):
 	return rows
 
 
-def _item_vat(invoice):
-	"""Read ERPNext's actual item-wise VAT charges, including source rounding.
-
-	Repeated item codes share a single item-wise tax amount pro rata on base value.
-	Mixed invoices without an actual item-wise allocation are rejected.
-	"""
-	grouped = defaultdict(list)
+def _validate_sales_return_types(invoice):
+	"""Invoice-line VAT Return Type overrides the Item Tax Template classification."""
 	for item in invoice.items:
-		grouped[item.item_code].append(item)
+		box = item.get("vat_return_type")
+		if box not in SALES_BOXES:
+			frappe.throw(
+				frappe._("Missing or invalid VAT Return Type for Sales Invoice {0}, row {1} ({2}). Allowed sales types: {3}").format(
+					invoice.name, item.idx, item.get("item_name") or item.get("item_code") or item.name,
+					", ".join(SALES_BOXES),
+				)
+			)
+
+
+def _item_vat(invoice):
+	"""Allocate actual invoice VAT by item code, item name or child row identifier.
+
+	The invoice-line VAT Return Type is authoritative for MRA categorization.
+	Tax breakdown keys are used only to allocate the tax amount. Duplicate
+	identifiers are apportioned by absolute net value; ambiguous identifiers
+	that refer to different rows through code/name matching must be reviewed.
+	"""
+	by_code = defaultdict(list)
+	by_name = defaultdict(list)
+	by_row = {}
+	for item in invoice.items:
+		if item.get("item_code"):
+			by_code[item.item_code].append(item)
+		if item.get("item_name"):
+			by_name[item.item_name].append(item)
+		by_row[item.name] = item
 	totals = defaultdict(float)
 	tax_rows = _vat_tax_rows(invoice)
 	for tax in tax_rows:
@@ -57,12 +78,18 @@ def _item_vat(invoice):
 		for key, calculation in (details or {}).items():
 			if not isinstance(calculation, list | tuple) or len(calculation) < 2:
 				frappe.throw(f"Unexpected item-wise VAT allocation on {invoice.name}: {key}")
-			if key not in grouped:
-				matches = [item for item in invoice.items if item.name == key]
-				if len(matches) != 1:
-					frappe.throw(f"Unmatched VAT item {key} in {invoice.name}")
-				grouped[key] = matches
-			pool = grouped[key]
+			if key in by_row:
+				pool = [by_row[key]]
+			else:
+				code_matches = by_code.get(key, [])
+				name_matches = by_name.get(key, [])
+				if code_matches and name_matches and {
+					row.name for row in code_matches
+				} != {row.name for row in name_matches}:
+					frappe.throw(f"Ambiguous VAT item {key} in {invoice.name}; check Item Code and Item Name")
+				pool = code_matches or name_matches
+			if not pool:
+				frappe.throw(f"Unmatched VAT item {key} in {invoice.name}")
 			total = sum(abs(money(item.base_net_amount)) for item in pool)
 			if not total and abs(money(calculation[1])) > 0.01:
 				frappe.throw(f"Zero net value with VAT in {invoice.name}")
@@ -75,7 +102,6 @@ def _item_vat(invoice):
 	if abs(expected - actual) > max(0.03, 0.01 * len(invoice.items)):
 		frappe.throw(f"VAT tax detail does not reconcile for {invoice.name}: {actual} vs {expected}")
 	return totals
-
 
 def _invoice_names(parent, company, start, end, purchase=False):
 	P = frappe.qb.DocType(parent)
@@ -106,6 +132,8 @@ def _invoice_names(parent, company, start, end, purchase=False):
 
 
 def _source_rows(invoice, purchase, from_date, to_date, recovery):
+	if not purchase:
+		_validate_sales_return_types(invoice)
 	tax_by_item = _item_vat(invoice)
 	result = []
 	for item in invoice.items:
