@@ -12,9 +12,16 @@
   "column_break_1",
   "from_date",
   "to_date",
+  "filing_month",
+  "recovery_percentage",
+  "filing_status",
   "filing_section",
   "filing_date",
   "mra_acknowledgement_reference",
+  "declarant_name",
+  "declarant_email",
+  "declarant_mobile",
+  "declarant_phone",
   "carry_section",
   "box_12_excess_brought_forward",
   "brought_forward_from",
@@ -22,6 +29,17 @@
   "box_16_excess_carried_forward",
   "lines_section",
   "lines",
+  "output_vat",
+  "input_vat",
+  "vat_payable",
+  "sales_details_section",
+  "sales_details",
+  "purchase_details_section",
+  "purchase_details",
+  "adjustments_section",
+  "adjustments",
+  "excess_brought_forward_manual",
+  "opening_credit_reason",
   "snapshot_section",
   "filters_json",
   "return_data_json",
@@ -77,12 +95,14 @@
   {
    "fieldname": "filing_date",
    "fieldtype": "Date",
-   "label": "Filing Date"
+   "label": "Filing Date",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "mra_acknowledgement_reference",
    "fieldtype": "Data",
-   "label": "MRA Acknowledgement / Reference"
+   "label": "MRA Acknowledgement / Reference",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "carry_section",
@@ -152,6 +172,118 @@
    "options": "VAT Return Filing",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "recovery_percentage",
+   "fieldtype": "Float",
+   "label": "Input VAT recovery (%)",
+   "default": "100",
+   "reqd": 1
+  },
+  {
+   "fieldname": "filing_status",
+   "fieldtype": "Select",
+   "label": "Filing Status",
+   "options": "Prepared\nFiled\nAcknowledged",
+   "default": "Prepared",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "output_vat",
+   "fieldtype": "Currency",
+   "label": "Output VAT",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "input_vat",
+   "fieldtype": "Currency",
+   "label": "Recoverable Input VAT",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_payable",
+   "fieldtype": "Currency",
+   "label": "VAT Due",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_details_section",
+   "fieldtype": "Section Break",
+   "label": "Sales Details"
+  },
+  {
+   "fieldname": "sales_details",
+   "fieldtype": "Table",
+   "label": "Sales Invoice Details",
+   "options": "VAT Return Sales Detail"
+  },
+  {
+   "fieldname": "purchase_details_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Details"
+  },
+  {
+   "fieldname": "purchase_details",
+   "fieldtype": "Table",
+   "label": "Purchase Invoice Details",
+   "options": "VAT Return Purchase Detail"
+  },
+  {
+   "fieldname": "adjustments_section",
+   "fieldtype": "Section Break",
+   "label": "Adjustments"
+  },
+  {
+   "fieldname": "adjustments",
+   "fieldtype": "Table",
+   "label": "Prior-period / Manual Adjustments",
+   "options": "VAT Return Adjustment"
+  },
+  {
+   "fieldname": "excess_brought_forward_manual",
+   "fieldtype": "Currency",
+   "label": "Opening VAT Credit Override",
+   "options": "currency"
+  },
+  {
+   "fieldname": "opening_credit_reason",
+   "fieldtype": "Small Text",
+   "label": "Opening Credit Reference"
+  },
+  {
+   "fieldname": "declarant_name",
+   "fieldtype": "Data",
+   "label": "MRA Declarant Name",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "declarant_email",
+   "fieldtype": "Data",
+   "label": "MRA Declarant Email",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "declarant_mobile",
+   "fieldtype": "Data",
+   "label": "MRA Declarant Mobile",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "declarant_phone",
+   "fieldtype": "Data",
+   "label": "MRA Declarant Phone",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "filing_month",
+   "fieldtype": "Data",
+   "label": "VAT Filing Month",
+   "in_list_view": 1,
+   "read_only": 1,
+   "description": "YYYY-MM taxable period"
   }
  ],
  "grid_page_length": 50,
@@ -202,5 +334,6 @@
  "sort_field": "to_date",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1
+ "track_changes": 1,
+ "documentation": "/vat-return-filing-guide"
 }

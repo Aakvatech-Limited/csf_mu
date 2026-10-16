@@ -1,0 +1,48 @@
+{
+ "doctype": "DocType",
+ "name": "VAT Return Adjustment",
+ "module": "CSF MU",
+ "istable": 1,
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "mra_box",
+  "reference",
+  "reason",
+  "vat_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "mra_box",
+   "fieldtype": "Select",
+   "label": "mra box",
+   "options": "2\n4\n13\n15.1\n15.2\n17\n18",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "label": "reference",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "reason",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "vat amount",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [],
+ "actions": [],
+ "states": []
+}
