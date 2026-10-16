@@ -1,0 +1,10 @@
+{
+ "doctype": "Print Format",
+ "name": "MRA VAT Return",
+ "doc_type": "VAT Return Filing",
+ "module": "CSF MU",
+ "standard": "Yes",
+ "print_format_type": "Jinja",
+ "html": "<div class=\"print-format\">\n<h2 style=\"text-align:center\">VAT RETURN</h2>\n<p><strong>{{ doc.company }}</strong> — Period: {{ doc.from_date }} to {{ doc.to_date }}<br>\nMRA reference: {{ doc.mra_acknowledgement_reference or '-' }} | Filing Date: {{ doc.filing_date or '-' }}<br>\nInput VAT recovery: {{ doc.recovery_percentage }}%</p>\n<table class=\"table table-bordered table-condensed\">\n<thead><tr><th style=\"width:10%\">MRA Box</th><th>Description</th><th style=\"text-align:right\">Value (Rs)</th><th style=\"text-align:right\">VAT (Rs)</th></tr></thead>\n<tbody>{% for row in doc.lines %}<tr {% if row.box in [\"5\",\"9\",\"11\",\"14\",\"16\"] %}style=\"font-weight:bold\"{% endif %}>\n<td>{{ row.box }}</td><td>{{ row.description }}</td>\n<td style=\"text-align:right\">{% if row.value_amount %}{{ frappe.format_value(row.value_amount, {\"fieldtype\":\"Currency\",\"precision\":0}) }}{% else %}-{% endif %}</td>\n<td style=\"text-align:right\">{% if row.vat_amount %}{{ frappe.format_value(row.vat_amount, {\"fieldtype\":\"Currency\",\"precision\":0}) }}{% else %}-{% endif %}</td>\n</tr>{% endfor %}</tbody></table>\n<p style=\"font-size:10px\">Prepared from transaction snapshots on VAT Return Filing {{ doc.name }}. MRA official form submission remains a separate process.</p>\n</div>",
+ "disabled": 0
+}
