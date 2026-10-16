@@ -79,11 +79,11 @@ def download_mns_annex(name: str):
     company = frappe.get_doc("Company", doc.company)
     needed = ("mra_tan", "mra_brn")
     if any(not company.get(field) for field in needed):
-        frappe.throw("Company TAN and BRN are mandatory for the MNS annex.")
+        frappe.throw(frappe._("Company TAN and BRN are mandatory for the MNS annex."))
     if not doc.declarant_name or not doc.declarant_email:
-        frappe.throw("MRA declarant name and email are required for the annex.")
+        frappe.throw(frappe._("MRA declarant name and email are required for the annex."))
     if not (doc.declarant_phone or doc.declarant_mobile or company.get("mra_business_phone")):
-        frappe.throw("A declarant or business contact number is required for the annex.")
+        frappe.throw(frappe._("A declarant or business contact number is required for the annex."))
     output = io.StringIO(newline="")
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(["MNS","VT03","V1.0","","","","",""])
