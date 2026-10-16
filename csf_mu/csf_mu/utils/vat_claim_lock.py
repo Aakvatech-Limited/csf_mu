@@ -9,7 +9,7 @@ def _linked_filing(doctype: str, source_item: str | None = None, source_invoice:
     elif doctype == "Sales Invoice":
         Detail = frappe.qb.DocType("VAT Return Sales Detail")
     else:
-        frappe.throw("Unsupported VAT source document")
+        frappe.throw(frappe._("Unsupported VAT source document"))
     Filing = frappe.qb.DocType("VAT Return Filing")
     query = (
         frappe.qb.from_(Detail)
