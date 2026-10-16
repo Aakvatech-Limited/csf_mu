@@ -223,7 +223,9 @@
   {
    "fieldname": "sales_details_section",
    "fieldtype": "Section Break",
-   "label": "Sales Details"
+   "label": "Sales Details",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:0"
   },
   {
    "fieldname": "sales_details",
@@ -234,7 +236,9 @@
   {
    "fieldname": "purchase_details_section",
    "fieldtype": "Section Break",
-   "label": "Purchase Details"
+   "label": "Purchase Details",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:0"
   },
   {
    "fieldname": "purchase_details",
