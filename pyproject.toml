@@ -4,11 +4,13 @@ authors = [
     { name = "Aakvatech", email = "info@aakvatech.com"}
 ]
 description = "Country Specific Functionality Mauritius"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
-    # "frappe~=15.0.0" # Installed and managed by bench.
+    "requests>=2.31",
+    "cryptography>=42",
+    # ERPNext and Frappe are bench-managed applications, not PyPI dependencies.
 ]
 
 [build-system]
@@ -21,7 +23,7 @@ build-backend = "flit_core.buildapi"
 
 [tool.ruff]
 line-length = 110
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
