@@ -401,5 +401,6 @@
  "sort_field": "to_date",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1
+ "track_changes": 1,
+ "default_print_format": "MRA VAT Return"
 }
