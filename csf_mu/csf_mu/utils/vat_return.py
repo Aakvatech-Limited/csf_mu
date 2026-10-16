@@ -49,6 +49,13 @@ def set_sales_invoice_vat_return_types(doc, method=None):
 			row.vat_return_type = vat_return_type
 
 
+def set_purchase_invoice_vat_claim_dates(doc, method=None):
+	"""Default only blank item claim dates without overriding user-selected periods."""
+	for row in doc.get("items", []):
+		if not row.get("vat_claim_date") and doc.get("posting_date"):
+			row.vat_claim_date = doc.posting_date
+
+
 def set_purchase_invoice_vat_return_types(doc, method=None):
 	for row in doc.get("items", []):
 		default_type = _get_item_tax_template_vat_return_type(row.get("item_tax_template"))

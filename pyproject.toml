@@ -4,11 +4,13 @@ authors = [
     { name = "Aakvatech", email = "info@aakvatech.com"}
 ]
 description = "Country Specific Functionality Mauritius"
-requires-python = ">=3.10"
+requires-python = ">=3.14,<3.15"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
-    # "frappe~=15.0.0" # Installed and managed by bench.
+    "requests>=2.31",
+    "cryptography>=42",
+    # ERPNext and Frappe are bench-managed applications, not PyPI dependencies.
 ]
 
 [build-system]
@@ -16,12 +18,15 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 # These dependencies are only installed when developer mode is enabled
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0,<17.0.0"
+
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
 
 [tool.ruff]
 line-length = 110
-target-version = "py310"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [

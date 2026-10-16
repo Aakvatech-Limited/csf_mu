@@ -8,18 +8,16 @@ app_license = "mit"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "csf_mu",
-# 		"logo": "/assets/csf_mu/logo.png",
-# 		"title": "CSF MU",
-# 		"route": "/csf_mu",
-# 		"has_permission": "csf_mu.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+    {
+        "name": "csf_mu",
+        "title": "CSF MU",
+        "route": "/app/mra-integration",
+    }
+]
 
 # Includes in <head>
 # ------------------
