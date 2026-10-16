@@ -175,3 +175,10 @@ def _backfill_invoice_items(
 
 	stats["invoices_updated"] = len(updated_invoices)
 	return stats
+
+
+def set_purchase_invoice_vat_claim_dates(doc, method=None):
+	"""Default blank claim dates while preserving explicit VAT claim periods."""
+	for row in doc.get("items", []):
+		if not row.get("vat_claim_date") and doc.get("posting_date"):
+			row.vat_claim_date = doc.posting_date
