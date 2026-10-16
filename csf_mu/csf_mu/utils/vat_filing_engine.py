@@ -14,6 +14,24 @@ PURCHASE_BOXES = ("6.1", "6.2", "6.3", "6.4", "6.5", "6.6", "7", "8.1", "8.2")
 VAT_PURCHASE_BOXES = ("6.1", "6.3", "6.4", "6.6")
 
 
+def _company_currency(company):
+    """Use the accounting currency of the company being filed."""
+    currency = frappe.db.get_value("Company", company, "default_currency")
+    if not currency:
+        frappe.throw(f"Company {company} has no default currency")
+    return currency
+
+
+def _set_filing_currency(doc):
+    """Prevent a filing's stored currency from drifting from its source ledger."""
+    currency = _company_currency(doc.company)
+    if doc.currency and doc.currency != currency:
+        frappe.throw(
+            f"VAT filing currency {doc.currency} differs from company base currency {currency}"
+        )
+    doc.currency = currency
+
+
 def money(value):
     return flt(value, 6)
 
@@ -105,7 +123,13 @@ def _item_vat(invoice, errors=None):
             if not total and abs(amount) > 0.01:
                 problems.append(f"Tax row {tax.idx}, item {key}: zero net value with VAT")
                 continue
-            vat = amount * flt(invoice.conversion_rate or 1)
+            # ERPNext item_wise_tax_detail stores amounts in invoice currency.
+            # Convert once using the *posted invoice* rate; never a live FX quote.
+            rate = flt(invoice.get("conversion_rate"))
+            if rate <= 0:
+                problems.append(f"Invoice {invoice.name}: invalid conversion rate")
+                continue
+            vat = amount * rate
             for item in pool:
                 totals[item.name] += vat * (abs(money(item.base_net_amount)) / total if total else 0)
     expected = sum(money(tax.base_tax_amount_after_discount_amount) for tax in tax_rows)
@@ -208,6 +232,7 @@ def pull(doc):
         frappe.throw("Company and taxable dates are required")
     if getdate(doc.from_date) > getdate(doc.to_date):
         frappe.throw("From Date cannot exceed To Date")
+    _set_filing_currency(doc)
     recovery = flt(doc.recovery_percentage)
     if not 0 <= recovery <= 100:
         frappe.throw("Recovery percentage must be between 0 and 100")
@@ -237,6 +262,7 @@ def pull(doc):
 def recalculate(doc, validating_submission=False):
     if doc.docstatus and not validating_submission:
         frappe.throw("A submitted filing cannot be recalculated.")
+    _set_filing_currency(doc)
     pct = flt(doc.recovery_percentage)
     if pct < 0 or pct > 100:
         frappe.throw("Recovery percentage must be between 0 and 100.")
