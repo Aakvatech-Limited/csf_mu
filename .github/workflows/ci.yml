@@ -87,3 +87,9 @@ jobs:
           bench --site test_site list-apps
         env:
           TYPE: server
+
+      - name: VAT allocation regression tests
+        working-directory: /home/runner/frappe-bench
+        run: bench --site test_site run-tests --app csf_mu --module csf_mu.csf_mu.tests.test_vat_item_wise_details
+        env:
+          TYPE: server
