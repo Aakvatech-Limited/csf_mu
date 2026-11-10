@@ -112,55 +112,82 @@ def _item_vat(invoice, errors=None, tolerance=0.03, auto_allocate=True):
         by_row[item.name] = item
     totals = defaultdict(float)
     problems = []
+    # ERPNext v16 stores base-currency VAT in a separate child table.
+    # Its row links preserve mixed tax rates even when item codes repeat.
+    details_by_tax = defaultdict(list)
+    invoice_tax_ids = {tax.name for tax in invoice.get("taxes") or []}
+    for detail in invoice.get("item_wise_tax_details") or []:
+        if detail.get("tax_row") not in invoice_tax_ids:
+            problems.append(f"Item-wise VAT detail row {detail.idx}: unmatched tax row {detail.get('tax_row')}")
+            continue
+        details_by_tax[detail.tax_row].append(detail)
     for tax in _vat_tax_rows(invoice):
         allocations = defaultdict(float)
-        details = tax.get("item_wise_tax_detail")
-        try:
-            details = frappe.parse_json(details) if details else {}
-        except (ValueError, TypeError):
-            problems.append(f"Tax row {tax.idx}: invalid item-wise VAT details")
-            continue
-        if not isinstance(details, dict):
-            problems.append(f"Tax row {tax.idx}: item-wise VAT details must be a mapping")
-            continue
         expected = money(tax.base_tax_amount_after_discount_amount)
-        if not details and abs(expected) > 0.01:
-            problems.append(f"Tax row {tax.idx}: missing item-wise VAT allocation")
-            continue
-        for key, calculation in details.items():
-            if not isinstance(calculation, (list, tuple)) or len(calculation) < 2:
-                problems.append(f"Tax row {tax.idx}, item {key}: unexpected VAT allocation")
-                continue
-            if key in by_row:
-                pool = [by_row[key]]
-            else:
-                code_matches = by_code.get(key, [])
-                name_matches = by_name.get(key, [])
-                if code_matches and name_matches and {row.name for row in code_matches} != {row.name for row in name_matches}:
-                    problems.append(f"Tax row {tax.idx}: ambiguous VAT item {key}; check Item Code and Item Name")
+        child_details = details_by_tax.get(tax.name)
+        if child_details:
+            for detail in child_details:
+                item_row = detail.get("item_row")
+                if item_row not in by_row:
+                    problems.append(f"Tax row {tax.idx}: unmatched VAT item row {item_row}")
                     continue
-                pool = code_matches or name_matches
-            if not pool:
-                problems.append(f"Tax row {tax.idx}: unmatched VAT item {key}")
-                continue
+                if item_row in allocations:
+                    problems.append(f"Tax row {tax.idx}: duplicate VAT allocation for item row {item_row}")
+                    continue
+                try:
+                    amount = Decimal(str(detail.get("amount")))
+                    if not amount.is_finite():
+                        raise ValueError
+                    allocations[item_row] = money(amount)
+                except (ArithmeticError, ValueError, TypeError):
+                    problems.append(f"Tax row {tax.idx}, item row {item_row}: invalid VAT amount")
+        else:
+            details = tax.get("item_wise_tax_detail")
             try:
-                amount = money(calculation[1])
-                weights = [
-                    _item_tax_weight(item, tax.get("account_head"), calculation[0] or tax.get("rate"))
-                    for item in pool
-                ]
-            except (ValueError, TypeError, IndexError) as exc:
-                problems.append(f"Tax row {tax.idx}, item {key}: invalid VAT allocation: {exc}")
+                details = frappe.parse_json(details) if details else {}
+            except (ValueError, TypeError):
+                problems.append(f"Tax row {tax.idx}: invalid item-wise VAT details")
                 continue
-            weight_total = sum(weights)
-            if not weight_total and abs(amount) > 0.000001:
-                problems.append(
-                    f"Tax row {tax.idx}, item {key}: non-zero VAT with no eligible taxable item"
-                )
+            if not isinstance(details, dict):
+                problems.append(f"Tax row {tax.idx}: item-wise VAT details must be a mapping")
                 continue
-            for item, weight in zip(pool, weights):
-                if weight:
-                    allocations[item.name] += amount * weight / weight_total
+            if not details and abs(expected) > 0.01:
+                problems.append(f"Tax row {tax.idx}: missing item-wise VAT allocation")
+                continue
+            for key, calculation in details.items():
+                if not isinstance(calculation, (list, tuple)) or len(calculation) < 2:
+                    problems.append(f"Tax row {tax.idx}, item {key}: unexpected VAT allocation")
+                    continue
+                if key in by_row:
+                    pool = [by_row[key]]
+                else:
+                    code_matches = by_code.get(key, [])
+                    name_matches = by_name.get(key, [])
+                    if code_matches and name_matches and {row.name for row in code_matches} != {row.name for row in name_matches}:
+                        problems.append(f"Tax row {tax.idx}: ambiguous VAT item {key}; check Item Code and Item Name")
+                        continue
+                    pool = code_matches or name_matches
+                if not pool:
+                    problems.append(f"Tax row {tax.idx}: unmatched VAT item {key}")
+                    continue
+                try:
+                    amount = money(calculation[1])
+                    weights = [
+                        _item_tax_weight(item, tax.get("account_head"), calculation[0] or tax.get("rate"))
+                        for item in pool
+                    ]
+                except (ValueError, TypeError, IndexError) as exc:
+                    problems.append(f"Tax row {tax.idx}, item {key}: invalid VAT allocation: {exc}")
+                    continue
+                weight_total = sum(weights)
+                if not weight_total and abs(amount) > 0.000001:
+                    problems.append(
+                        f"Tax row {tax.idx}, item {key}: non-zero VAT with no eligible taxable item"
+                    )
+                    continue
+                for item, weight in zip(pool, weights):
+                    if weight:
+                        allocations[item.name] += amount * weight / weight_total
         if problems:
             continue
         actual = sum(allocations.values())
