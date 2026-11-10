@@ -1,5 +1,6 @@
 """Read v16 row-linked VAT allocations without changing posted amounts."""
 
+import json
 from unittest import TestCase
 
 import frappe
@@ -7,8 +8,16 @@ import frappe
 from csf_mu.csf_mu.utils import vat_filing_engine as engine
 
 
+class InvoiceFixture(frappe._dict):
+	"""Expose the child table as a Document does, rather than dict.items()."""
+
+	@property
+	def items(self):
+		return self["items"]
+
+
 def make_invoice(doctype="Purchase Invoice", conversion_rate=1):
-	return frappe._dict(
+	return InvoiceFixture(
 		doctype=doctype,
 		name="TEST-V16-VAT",
 		supplier="Test Supplier",
@@ -50,6 +59,110 @@ def make_invoice(doctype="Purchase Invoice", conversion_rate=1):
 
 
 class TestVATItemWiseDetails(TestCase):
+	def migration_invoice(self, case="exempt"):
+		# Synthetic values only; no client invoice data belongs in repository fixtures.
+		invoice = make_invoice()
+		invoice.taxes[0].charge_type = "On Net Total"
+		if case == "signed":
+			bases = [2000, -1000, -40, 40]
+			rates = [15, 0, 15, 0]
+			stored = [300, -294, -6, 12]
+			posted = 294
+		elif case == "balanced":
+			bases, rates, stored, posted = [100, 50], [15, 0], [14.8, 0.2], 15
+		elif case == "control":
+			bases, rates, stored, posted = [100, 50], [15, 0], [15, 0], 15
+		else:
+			bases, rates, stored, posted = [1000, 200], [15, 0], [150, 25], 150
+		invoice["items"] = []
+		invoice.item_wise_tax_details = []
+		invoice.taxes[0].base_tax_amount_after_discount_amount = posted
+		for idx, base in enumerate(bases):
+			name = "row-" + str(idx + 1)
+			invoice["items"].append(
+				frappe._dict(
+					name=name,
+					idx=idx + 1,
+					item_code="SHARED-CODE",
+					base_net_amount=base,
+					vat_return_type="6.6" if rates[idx] else "8.2",
+					item_tax_rate=json.dumps({"VAT Input": rates[idx]}),
+					vat_recovery_treatment="Shared",
+				)
+			)
+			invoice.item_wise_tax_details.append(
+				frappe._dict(
+					idx=idx + 1,
+					item_row=name,
+					tax_row="vat-tax",
+					rate=rates[idx],
+					amount=stored[idx],
+				)
+			)
+		return invoice
+
+	def test_migrated_samples_reconcile_without_mutating_invoice(self):
+		for case in ("exempt", "signed", "balanced", "control"):
+			with self.subTest(case=case):
+				invoice = self.migration_invoice(case)
+				before = json.dumps(dict(invoice), sort_keys=True)
+				rows = engine._source_rows(invoice, True, "2026-07-01", "2026-07-31", 71, tolerance=0.5)
+				self.assertAlmostEqual(
+					sum(row["vat_amount"] for row in rows),
+					invoice.taxes[0].base_tax_amount_after_discount_amount,
+					places=6,
+				)
+				for row in rows:
+					if row["vat_return_type"] in ("7", "8.2"):
+						self.assertEqual(row["vat_amount"], 0)
+				self.assertEqual(json.dumps(dict(invoice), sort_keys=True), before)
+
+	def test_reconstruction_preserves_negative_taxable_adjustment(self):
+		invoice = self.migration_invoice("signed")
+		amounts = engine._item_vat(invoice, tolerance=0.5)
+		self.assertEqual([amounts[item.name] for item in invoice.items], [300, 0, -6, 0])
+
+	def test_valid_control_preserves_posted_row_rounding(self):
+		invoice = self.migration_invoice("control")
+		amounts = engine._item_vat(invoice, tolerance=0.5)
+		for detail in invoice.item_wise_tax_details:
+			self.assertEqual(amounts[detail.item_row], detail.amount)
+
+	def test_missing_saved_rate_does_not_reconstruct(self):
+		invoice = self.migration_invoice()
+		invoice.items[1].item_tax_rate = "{}"
+		with self.assertRaisesRegex(frappe.ValidationError, "does not reconcile"):
+			engine._item_vat(invoice, tolerance=0.5)
+
+	def test_unsupported_charge_or_discount_does_not_reconstruct(self):
+		for charge_type, discount in (("Actual", 0), ("On Net Total", 10)):
+			with self.subTest(charge_type=charge_type, discount=discount):
+				invoice = self.migration_invoice()
+				invoice.taxes[0].charge_type = charge_type
+				invoice.base_discount_amount = discount
+				with self.assertRaisesRegex(frappe.ValidationError, "does not reconcile"):
+					engine._item_vat(invoice, tolerance=0.5)
+
+	def test_unexplained_posted_vat_is_not_scaled_to_fit(self):
+		invoice = self.migration_invoice()
+		invoice.taxes[0].base_tax_amount_after_discount_amount = 200
+		with self.assertRaisesRegex(frappe.ValidationError, "does not reconcile"):
+			engine._item_vat(invoice, tolerance=0.5)
+
+	def test_reconstruction_respects_rounding_switch_and_tolerance(self):
+		invoice = self.migration_invoice()
+		invoice.taxes[0].base_tax_amount_after_discount_amount = 150.0005
+		with self.assertRaisesRegex(frappe.ValidationError, "Auto-Allocate"):
+			engine._item_vat(invoice, tolerance=0.5, auto_allocate=False)
+		with self.assertRaisesRegex(frappe.ValidationError, "does not reconcile"):
+			engine._item_vat(invoice, tolerance=0)
+
+	def test_invalid_saved_rate_does_not_reconstruct(self):
+		invoice = self.migration_invoice()
+		invoice.items[1].item_tax_rate = '{"VAT Input": "NaN"}'
+		with self.assertRaisesRegex(frappe.ValidationError, "does not reconcile"):
+			engine._item_vat(invoice, tolerance=0.5)
+
 	def test_purchase_mixed_rates_with_duplicate_codes(self):
 		rows = engine._source_rows(make_invoice(), True, "2026-07-01", "2026-07-31", 71)
 		self.assertEqual([row["vat_amount"] for row in rows], [15, 0])

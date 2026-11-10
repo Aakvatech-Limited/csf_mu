@@ -94,6 +94,44 @@ def _item_tax_weight(item, tax_account, fallback_rate):
     return abs(money(item.base_net_amount)) * abs(flt(fallback_rate))
 
 
+def _vat_from_saved_rates(invoice, tax, tolerance):
+    """Rebuild only the simple percentage case validated by the read-only trial.
+
+    Migrated child records can put VAT on explicitly zero-rated items or
+    disagree with the posted tax. Never rewrite source records or scale an
+    unexplained discrepancy: signed base amounts and explicit saved rates
+    must independently reconcile to the posted VAT within rounding tolerance.
+    """
+    if tax.get("charge_type") != "On Net Total":
+        return None
+    if flt(invoice.get("base_discount_amount")) or flt(invoice.get("discount_amount")):
+        return None
+    result = {}
+    permitted = PURCHASE_BOXES if invoice.doctype == "Purchase Invoice" else SALES_BOXES
+    taxable = (*VAT_PURCHASE_BOXES, "7") if invoice.doctype == "Purchase Invoice" else ("1.4",)
+    try:
+        for item in invoice.items:
+            raw = item.get("item_tax_rate") or "{}"
+            rates = frappe.parse_json(raw) if isinstance(raw, str) else raw
+            if not isinstance(rates, dict) or tax.account_head not in rates:
+                return None
+            rate = Decimal(str(rates[tax.account_head]))
+            base = Decimal(str(item.base_net_amount))
+            if not rate.is_finite() or not base.is_finite():
+                return None
+            amount = money(base * rate / 100)
+            box = item.get("vat_return_type")
+            if box not in permitted or (box not in taxable and amount):
+                return None
+            result[item.name] = amount
+    except (ArithmeticError, TypeError, ValueError):
+        return None
+    expected = money(tax.base_tax_amount_after_discount_amount)
+    if abs(expected - sum(result.values())) > flt(tolerance) + 0.000001:
+        return None
+    return result
+
+
 def _item_vat(invoice, errors=None, tolerance=0.03, auto_allocate=True):
     """Distribute posted base VAT by effective item tax rates.
 
@@ -141,6 +179,18 @@ def _item_vat(invoice, errors=None, tolerance=0.03, auto_allocate=True):
                     allocations[item_row] = money(amount)
                 except (ArithmeticError, ValueError, TypeError):
                     problems.append(f"Tax row {tax.idx}, item row {item_row}: invalid VAT amount")
+            if not problems:
+                # Check distribution as well as totals: migrated VAT can be
+                # assigned to exempt rows even when the account total matches.
+                candidate = _vat_from_saved_rates(invoice, tax, tolerance)
+                inconsistent = abs(expected - sum(allocations.values())) > flt(tolerance) + 0.000001
+                if candidate is not None:
+                    for item_row, amount in allocations.items():
+                        calculated = candidate.get(item_row, 0)
+                        if (not calculated and abs(amount) > 0.000001) or calculated * amount < 0:
+                            inconsistent = True
+                    if inconsistent:
+                        allocations = defaultdict(float, candidate)
         else:
             details = tax.get("item_wise_tax_detail")
             try:
