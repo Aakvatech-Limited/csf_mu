@@ -71,8 +71,36 @@ def _validate_sales_return_types(invoice, errors=None):
         frappe.throw("\n".join(problems))
 
 
-def _item_vat(invoice, errors=None):
-    """Allocate invoice VAT, collecting tax-detail errors when requested."""
+def _item_tax_weight(item, tax_account, fallback_rate):
+    """Base-currency VAT weight, respecting row-specific tax exemptions.
+
+    A zero rate explicitly saved in item_tax_rate must not inherit the
+    percentage of another row sharing its item code or name.
+    """
+    details = item.get("item_tax_rate")
+    if details:
+        try:
+            rates = frappe.parse_json(details) if isinstance(details, str) else details
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid item_tax_rate on row {item.idx}") from None
+        if not isinstance(rates, dict):
+            raise ValueError(f"Invalid item_tax_rate on row {item.idx}")
+        if tax_account in rates:
+            return abs(money(item.base_net_amount)) * abs(flt(rates[tax_account]))
+    # Older invoice rows without item_tax_rate must not absorb VAT
+    # into an exempt or zero-rated reporting box.
+    if item.get("vat_return_type") in ("1.1", "1.2", "1.3", "3", "6.2", "6.5", "8.1", "8.2"):
+        return 0
+    return abs(money(item.base_net_amount)) * abs(flt(fallback_rate))
+
+
+def _item_vat(invoice, errors=None, tolerance=0.03, auto_allocate=True):
+    """Distribute posted base VAT by effective item tax rates.
+
+    Reconcile independently for each VAT account/tax row. The company
+    rounding tolerance may repair small FX/rounding residuals, but may
+    never introduce VAT on an item explicitly rated at zero.
+    """
     by_code = defaultdict(list)
     by_name = defaultdict(list)
     by_row = {}
@@ -84,8 +112,8 @@ def _item_vat(invoice, errors=None):
         by_row[item.name] = item
     totals = defaultdict(float)
     problems = []
-    tax_rows = _vat_tax_rows(invoice)
-    for tax in tax_rows:
+    for tax in _vat_tax_rows(invoice):
+        allocations = defaultdict(float)
         details = tax.get("item_wise_tax_detail")
         try:
             details = frappe.parse_json(details) if details else {}
@@ -95,7 +123,8 @@ def _item_vat(invoice, errors=None):
         if not isinstance(details, dict):
             problems.append(f"Tax row {tax.idx}: item-wise VAT details must be a mapping")
             continue
-        if not details and abs(money(tax.base_tax_amount_after_discount_amount)) > 0.01:
+        expected = money(tax.base_tax_amount_after_discount_amount)
+        if not details and abs(expected) > 0.01:
             problems.append(f"Tax row {tax.idx}: missing item-wise VAT allocation")
             continue
         for key, calculation in details.items():
@@ -116,23 +145,54 @@ def _item_vat(invoice, errors=None):
                 continue
             try:
                 amount = money(calculation[1])
-            except (ValueError, TypeError):
-                problems.append(f"Tax row {tax.idx}, item {key}: invalid VAT amount")
+                weights = [
+                    _item_tax_weight(item, tax.get("account_head"), calculation[0] or tax.get("rate"))
+                    for item in pool
+                ]
+            except (ValueError, TypeError, IndexError) as exc:
+                problems.append(f"Tax row {tax.idx}, item {key}: invalid VAT allocation: {exc}")
                 continue
-            total = sum(abs(money(item.base_net_amount)) for item in pool)
-            if not total and abs(amount) > 0.01:
-                problems.append(f"Tax row {tax.idx}, item {key}: zero net value with VAT")
+            weight_total = sum(weights)
+            if not weight_total and abs(amount) > 0.000001:
+                problems.append(
+                    f"Tax row {tax.idx}, item {key}: non-zero VAT with no eligible taxable item"
+                )
                 continue
-            # ERPNext's item_wise_tax_detail is already in company base
-            # currency (as is base_tax_amount_after_discount_amount).
-            # Multiplying by conversion_rate here double-converts foreign invoices.
-            vat = amount
-            for item in pool:
-                totals[item.name] += vat * (abs(money(item.base_net_amount)) / total if total else 0)
-    expected = sum(money(tax.base_tax_amount_after_discount_amount) for tax in tax_rows)
-    actual = sum(totals.values())
-    if not problems and abs(expected - actual) > max(0.03, 0.01 * len(invoice.items)):
-        problems.append(f"VAT tax detail does not reconcile: {actual} vs {expected}")
+            for item, weight in zip(pool, weights):
+                if weight:
+                    allocations[item.name] += amount * weight / weight_total
+        if problems:
+            continue
+        actual = sum(allocations.values())
+        difference = expected - actual
+        if abs(difference) > 0.000001:
+            if abs(difference) > flt(tolerance) + 0.000001:
+                problems.append(
+                    f"Tax row {tax.idx}: VAT tax detail does not reconcile: "
+                    f"{money(actual)} vs {expected}; difference {money(difference)} "
+                    f"exceeds base-currency tolerance {flt(tolerance)}"
+                )
+                continue
+            if not auto_allocate:
+                problems.append(
+                    f"Tax row {tax.idx}: VAT rounding difference {money(difference)} "
+                    "requires Auto-Allocate Rounding Difference to be enabled"
+                )
+                continue
+            eligible = [
+                item for item in invoice.items
+                if abs(allocations[item.name]) > 0.000001
+            ]
+            if not eligible:
+                problems.append(
+                    f"Tax row {tax.idx}: rounding difference cannot be allocated "
+                    "without a taxable item"
+                )
+                continue
+            target = max(eligible, key=lambda item: abs(allocations[item.name]))
+            allocations[target.name] += difference
+        for name, vat in allocations.items():
+            totals[name] += vat
     if errors is not None:
         errors.extend(problems)
     elif problems:
@@ -157,11 +217,11 @@ def _invoice_names(parent, company, start, end, purchase=False):
     return [row.name for row in q.run(as_dict=True)]
 
 
-def _source_rows(invoice, purchase, from_date, to_date, recovery, errors=None):
+def _source_rows(invoice, purchase, from_date, to_date, recovery, errors=None, *, tolerance=0.03, auto_allocate=True):
     problems = []
     if not purchase:
         _validate_sales_return_types(invoice, problems)
-    tax_by_item = _item_vat(invoice, problems)
+    tax_by_item = _item_vat(invoice, problems, tolerance=tolerance, auto_allocate=auto_allocate)
     result = []
     for item in invoice.items:
         claim = item.get("vat_claim_date") or invoice.posting_date
@@ -238,11 +298,34 @@ def pull(doc):
     if not 0 <= recovery <= 100:
         frappe.throw("Recovery percentage must be between 0 and 100")
 
+    # Pull from the filing's stored snapshot, never a different company's record.
+    # Older draft filings created before these fields existed can read the
+    # configured company tolerance without affecting submitted returns.
+    tolerance = doc.get("vat_reconciliation_tolerance")
+    auto_allocate = doc.get("auto_allocate_rounding_difference")
+    if tolerance is None or auto_allocate is None:
+        settings = frappe.db.get_value(
+            "CSF MU Company Settings",
+            doc.company,
+            ["vat_reconciliation_tolerance", "auto_allocate_rounding_difference"],
+            as_dict=True,
+        )
+        if not settings:
+            frappe.throw(f"Create CSF MU Company Settings for {doc.company} before pulling VAT.")
+        if tolerance is None:
+            tolerance = settings.vat_reconciliation_tolerance
+            doc.vat_reconciliation_tolerance = tolerance
+        if auto_allocate is None:
+            auto_allocate = settings.auto_allocate_rounding_difference
+            doc.auto_allocate_rounding_difference = auto_allocate
+    if flt(tolerance) < 0:
+        frappe.throw("VAT reconciliation tolerance cannot be negative")
+
     sales, purchases, errors = [], [], []
     for name in _invoice_names("Sales Invoice", doc.company, doc.from_date, doc.to_date):
-        sales.extend(_source_rows(frappe.get_doc("Sales Invoice", name), False, doc.from_date, doc.to_date, recovery, errors))
+        sales.extend(_source_rows(frappe.get_doc("Sales Invoice", name), False, doc.from_date, doc.to_date, recovery, errors, tolerance=flt(tolerance), auto_allocate=bool(auto_allocate)))
     for name in _invoice_names("Purchase Invoice", doc.company, doc.from_date, doc.to_date, purchase=True):
-        purchases.extend(_source_rows(frappe.get_doc("Purchase Invoice", name), True, doc.from_date, doc.to_date, recovery, errors))
+        purchases.extend(_source_rows(frappe.get_doc("Purchase Invoice", name), True, doc.from_date, doc.to_date, recovery, errors, tolerance=flt(tolerance), auto_allocate=bool(auto_allocate)))
     _check_duplicate_claim([row["source_item"] for row in purchases], doc.name, errors)
     if errors:
         # Do not mutate the filing or persist partial snapshots on validation failure.
