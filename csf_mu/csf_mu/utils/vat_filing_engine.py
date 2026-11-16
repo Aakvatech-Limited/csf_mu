@@ -10,7 +10,7 @@ from frappe.utils import flt, getdate
 
 
 SALES_BOXES = ("1.1", "1.2", "1.3", "1.4", "3")
-PURCHASE_BOXES = ("6.1", "6.2", "6.3", "6.4", "6.5", "6.6", "7", "8.1", "8.2")
+PURCHASE_BOXES = ("6.1", "6.2", "6.3", "6.4", "6.5", "6.6", "7", "8.1", "8.2", "13")
 VAT_PURCHASE_BOXES = ("6.1", "6.3", "6.4", "6.6")
 
 
@@ -262,14 +262,14 @@ def _source_rows(invoice, purchase, from_date, to_date, recovery, errors=None, *
             continue
         value = money(item.base_net_amount)
         vat = money(tax_by_item.get(item.name, 0))
-        if box not in ((*VAT_PURCHASE_BOXES, "7") if purchase else ("1.4",)) and abs(vat) > 0.03:
+        if box not in ((*VAT_PURCHASE_BOXES, "7", "13") if purchase else ("1.4",)) and abs(vat) > 0.03:
             problems.append(
                 f"Row {item.idx}: VAT amount {vat} is allocated to MRA box {box}, "
                 "which does not permit VAT recovery. Review the invoice tax "
                 "allocation and VAT Return Type; no VAT is claimed automatically."
             )
             continue
-        treatment = ((item.get("vat_recovery_treatment") or "Shared") if box in VAT_PURCHASE_BOXES else "None") if purchase else ""
+        treatment = ((item.get("vat_recovery_treatment") or "Shared") if box in (*VAT_PURCHASE_BOXES, "13") else "None") if purchase else ""
         result.append({
             "source_doctype": invoice.doctype,
             "source_invoice": invoice.name,
@@ -395,6 +395,13 @@ def recalculate(doc, validating_submission=False):
             vat["deductible"] += (flt(row.vat_amount) if row.recovery_treatment == "Full" else
                                   flt(row.vat_amount) * pct / 100 if row.recovery_treatment == "Shared" else 0)
     adjustments = defaultdict(float)
+    for row in doc.get("purchase_details") or []:
+        if row.vat_return_type == "13":
+            if row.recovery_treatment not in ("Full", "Shared", "None"):
+                frappe.throw(f"Invalid recovery treatment on {row.source_invoice}")
+            claim = (flt(row.vat_amount) if row.recovery_treatment == "Full" else
+                     flt(row.vat_amount) * pct / 100 if row.recovery_treatment == "Shared" else 0)
+            adjustments["13"] -= claim
     for row in doc.get("adjustments") or []:
         if not row.reference or not row.reason:
             frappe.throw("Adjustment requires a reference and reason")
