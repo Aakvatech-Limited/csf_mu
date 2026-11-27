@@ -52,7 +52,7 @@ def _send_invoice_to_mra(doc, allow_existing_log=False):
 			return
 		log.status = "ERRORS"
 		log.error_summary = (
-			f"CSF MU Settings Detail with Public Key Certificate is required for company {doc.company}."
+			f"EBS Setting with Public Key Certificate is required for company {doc.company}."
 		)
 		log.save(ignore_permissions=True)
 		doc.db_set("mra_status", "ERRORS", update_modified=False)
@@ -222,7 +222,7 @@ def batch_transmit_job(sales_invoices, company=None, task_id=None):
 				continue
 			log.status = "ERRORS"
 			log.error_summary = (
-				f"CSF MU Settings Detail with Public Key Certificate is required for company {company}."
+				f"EBS Setting with Public Key Certificate is required for company {company}."
 			)
 			log.save(ignore_permissions=True)
 			doc.db_set("mra_status", "ERRORS", update_modified=False)
