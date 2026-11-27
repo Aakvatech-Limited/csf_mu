@@ -109,7 +109,7 @@ def get_token_and_mra_key(company, settings=None, settings_detail=None):
 
 	if not settings_detail.public_key_certificate:
 		frappe.throw(
-			f"Public Key Certificate is required in CSF MU Settings Detail for company {company}."
+			f"Public Key Certificate is required in EBS Setting for company {company}."
 		)
 
 	now = now_datetime()
